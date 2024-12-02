@@ -6,7 +6,7 @@
 // const roles = [
 //   { roleName: "super-admin", description: "Has full access to all features and settings.", createdBy: "system", updatedBy: "system" },
 //   { roleName: "Editor-in-Chief", description: "Oversees the entire editorial process.", createdBy: "system", updatedBy: "system" },
-//   { roleName: "Managing-Editor", description: "Manages the editorial workflow.", createdBy: "system", updatedBy: "system" },
+//   { roleName: " ", description: "Manages the editorial workflow.", createdBy: "system", updatedBy: "system" },
 //   { roleName: "Section-Editor", description: "Manages specific sections of the publication.", createdBy: "system", updatedBy: "system" },
 //   { roleName: "Associate-Editor", description: "Assists the section editors.", createdBy: "system", updatedBy: "system" },
 //   { roleName: "Production-Editor", description: "Oversees the production process.", createdBy: "system", updatedBy: "system" },
