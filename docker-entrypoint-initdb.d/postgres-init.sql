@@ -1,0 +1,3 @@
+CREATE DATABASE jmsdb;
+CREATE USER jmsdb_user;
+GRANT ALL PRIVILEGES ON DATABASE jmsdb TO jmsdb_user;

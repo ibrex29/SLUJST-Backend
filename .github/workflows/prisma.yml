@@ -1,0 +1,79 @@
+name: Check Prisma Migrations
+
+on:
+  pull_request:
+    branches: [main]
+ 
+jobs:
+  prisma:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mydb
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Cache Yarn modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Wait for Postgres
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for Postgres...";
+            sleep 1;
+          done
+          
+      - name: Set up the database using only the migration files
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/mydb
+        run: yarn prisma migrate deploy
+
+      - name: Check for schema drift (prisma.schema | database)
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/mydb
+        run: |
+          yarn prisma migrate diff --from-schema-datamodel=src/common/prisma/schema.prisma --to-url="$DATABASE_URL" --exit-code
+        continue-on-error: true
+        id: drift
+      - name: Run migrations in main
+        if: success() && steps.drift.outcome == 'success'
+        env:
+          DATABASE_URL: postgresql://jmsdb_user:WLjEeLuM1ABbN8P978PHBTBOghxO8rdA@dpg-cq6pdsjgbbvc73av936g-a.oregon-postgres.render.com/jmsdb
+        run: yarn prisma migrate deploy
+
+      - name: Ensure migrations are valid
+        if: success() && steps.drift.outcome == 'success'
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/mydb
+        run: yarn prisma migrate status --schema=src/common/prisma/schema.prisma
+
+      - name: Schema drift detected
+        if: failure() || steps.drift.outcome == 'failure'
+        run: |
+          echo "Schema drift detected. Please ensure your Prisma schema and the migration files are in sync."
+          exit 1

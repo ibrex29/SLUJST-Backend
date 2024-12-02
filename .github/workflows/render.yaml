@@ -1,0 +1,17 @@
+services:
+  - name: my-app
+    type: web
+    env: docker
+    plan: free
+    branch: main
+    autoDeploy: true
+
+    build:
+      dockerfilePath: Dockerfile
+
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://slujstdb_user:vL6kr4A713EQDTGjDuAxzJlF6hVDUePs@dpg-cqnlagaj1k6c73apmsr0-a.oregon-postgres.render.com/slujstdb
+
+    healthCheckPath: /
+    autoDeploy: true

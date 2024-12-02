@@ -1,0 +1,26 @@
+# Node.js modules
+# Temp App Data
+/data
+
+/node_modules
+yarn-error.log
+npm-debug.log
+
+# Build output
+dist
+build
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# Ignore local config files
+.git
+.gitignore
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore

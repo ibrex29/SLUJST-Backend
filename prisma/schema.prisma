@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String       @id @default(uuid())
+  title       String?
+  firstName   String
+  lastName    String
+  password    String
+  email       String      @unique
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  createdBy   String
+  updatedBy   String
+  Author      Author?
+  Editor      Editor?
+  Reviewer    Reviewer?
+  roles       Role[]      @relation("UserRoles")
+  publications Publication[]
+  reactions       Reaction[]
+  commentsCreated Comment[]  @relation(name: "comment_created_by")
+  commentsUpdated Comment[]  @relation(name: "comment_updated_by")
+}
+
+model Author {
+  id            String        @id @default(uuid())
+  userId        String       @unique
+  affiliation   String
+  expertiseArea String
+  User          User         @relation(fields: [userId], references: [id])
+  Manuscript    Manuscript[]
+  Reply         Reply[]
+  Review        Review[]
+}
+
+model Editor {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  User      User       @relation(fields: [userId], references: [id])
+  sectionId     String?
+  Section       Section?  @relation("SectionEditors", fields: [sectionId], references: [id]) 
+  role      EditorRole
+}
+
+model Reviewer {
+  id            String        @id @default(uuid())
+  userId        String       @unique
+  expertiseArea String
+  Manuscript    Manuscript[]
+  Review        Review[]
+  sectionId     String 
+  Section       Section?  @relation("SectionReviewer", fields: [sectionId], references: [id]) 
+  User          User         @relation(fields: [userId], references: [id])
+}
+
+model Section {
+  id          String      @id @default(uuid())
+  name        String      
+  createdAt         DateTime  @default(now())
+  createdBy         String
+  updatedAt         DateTime  @updatedAt
+  updatedBy         String
+  manuscripts Manuscript[] @relation("SectionManuscripts") 
+  reviewers   Reviewer[]  @relation("SectionReviewer") 
+  editors     Editor[]    @relation("SectionEditors") 
+}
+
+model Manuscript {
+  id                String    @id @default(uuid())
+  title             String
+  abstract          String
+  keywords          String
+  author            String?
+  coAuthor          String?
+  status            Status
+  authorId          String
+  createdAt         DateTime  @default(now())
+  createdBy         String
+  suggestedReviewer String?
+  updatedAt         DateTime  @updatedAt
+  updatedBy         String
+  isPublished       Boolean
+  assigmentDate     DateTime? @default(now())
+  reviewDueDate     DateTime?
+  reviewerId        String?
+  sectionId         String?   
+  Author            Author    @relation(fields: [authorId], references: [id])
+  Reviewer          Reviewer? @relation(fields: [reviewerId], references: [id])
+  Review            Review[]
+  Publication       Publication[]
+
+  Section           Section?  @relation("SectionManuscripts", fields: [sectionId], references: [id]) 
+  Document          Document[]
+
+
+  @@index([status])
+  @@index([authorId])
+  @@index([sectionId])
+}
+
+model Document {
+  id                String      @id @default(uuid())
+  manuscriptLink    String
+  proofofPayment    String
+  otherDocsLink     String?
+  manuscriptId      String
+  Manuscript        Manuscript  @relation(fields: [manuscriptId], references: [id])
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model Review {
+  id             String          @id @default(uuid())
+  manuscriptId   String
+  reviewerId     String
+  reviewDate     DateTime
+  comments       String
+  recommendation Recommendation
+  authorId       String
+  isClosed       Boolean
+  Reply          Reply[]
+  Author         Author         @relation(fields: [authorId], references: [id])
+  Manuscript     Manuscript     @relation(fields: [manuscriptId], references: [id])
+  Reviewer       Reviewer       @relation(fields: [reviewerId], references: [id])
+}
+
+model Reply {
+  id          String   @id @default(uuid())
+  reviewId    String
+  authorId    String
+  subject     String
+  contents    String
+  uploadFiles String?
+  isauthor    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  createdBy         String
+  updatedAt         DateTime  @updatedAt
+  updatedBy         String
+  Author      Author   @relation(fields: [authorId], references: [id])
+  Review      Review   @relation(fields: [reviewId], references: [id])
+}
+
+model Publication {
+  id                 String      @id @default(uuid())
+  title              String
+  abstract           String
+  keywords           String
+  createdAt          DateTime    @default(now())
+  createdBy          String
+  updatedAt          DateTime    @updatedAt
+  updatedBy          String
+  isActive           Boolean    @default(false)
+  isPublished        Boolean    @default(false)
+  DOI                String
+  userId             String?
+  formattedManuscript String   
+  editor             User?       @relation(fields: [userId], references: [id])
+  manuscriptId       String? 
+  Manuscript         Manuscript? @relation(fields: [manuscriptId], references: [id])
+  issueId            String
+  Issue              Issue       @relation(fields: [issueId], references: [id])
+  reactions          Reaction[]
+  comments           Comment[]   @relation(name: "publication_comments")
+  Reaction Reaction[] @relation(name: "publication_comments")
+}
+
+model Issue {
+  id                 String      @id @default(uuid())
+  name               String
+  description        String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  volumeId           String
+  Volume             Volume      @relation(fields: [volumeId], references: [id])
+  publications       Publication[]
+}
+
+model Volume {
+  id                 String      @id @default(uuid())
+  name               String
+  description        String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  issues             Issue[]
+}
+
+
+model Comment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  publicationId String
+  publication   Publication @relation(fields: [publicationId], references: [id], name: "publication_comments")
+  content String
+  createdByUserId String?
+  createdBy       User?   @relation(fields: [createdByUserId], references: [id], name: "comment_created_by")
+  updatedByUserId String?
+  updatedBy       User?   @relation(fields: [updatedByUserId], references: [id], name: "comment_updated_by")
+  isDeleted Boolean @default(false)
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  publicationId String
+  publication   Publication @relation(fields: [publicationId], references: [id], name: "publication_comments")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  type ReactionType
+
+  @@unique([publicationId, userId])
+  Publication Publication[]
+}
+
+model Permission {
+  id              String   @id @default(uuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  permissionName  String   @unique
+  isActive        Boolean  @default(true)
+  createdBy       String
+  updatedBy       String
+  role            Role[]   @relation("RolePermissions")
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  roleName    String       @unique
+  description String?
+  isActive    Boolean      @default(true)
+  user        User[]       @relation("UserRoles")
+  permissions Permission[] @relation("RolePermissions")
+  createdBy   String
+  updatedBy   String
+
+  @@map("roles")
+}
+
+enum ReactionType {
+  LIKE
+  DISLIKE
+}
+
+enum Recommendation {
+  ACCEPT
+  MINOR_REVISIONS
+  MAJOR_REVISIONS
+  REJECT
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum Status {
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+  PUBLISHED
+}
+
+enum EditorRole {
+  EDITOR_IN_CHIEF 
+  MANAGING_EDITOR
+  SECTION_EDITOR
+  ASSOCIATE_EDITOR
+  PRODUCTION_EDITOR
+  COPY_EDITOR
+}
