@@ -21,10 +21,7 @@ export class CreateEditorDto {
   @ApiProperty({ example: 'fdsxb132456', description: 'The password of the author' })
   @IsNotEmpty()
   @IsString()
-  @MinLength(8) // Example minimum length, adjust as needed
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/, {
-    message: 'Password too weak. Must contain at least one uppercase letter, one lowercase letter, and one number.',
-  })
+  @MinLength(8) 
   password : string;
 
   @ApiProperty({ example: 'University of Example', description: 'The affiliation of the author' })
