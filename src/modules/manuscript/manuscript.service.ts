@@ -114,7 +114,7 @@ async assignManuscriptToSection(assignManuscriptToSectionDto: AssignManuscriptTo
     where: { id: manuscriptId },
     data: {
       sectionId: sectionId,
-      status: "UNDER_REVIEW"
+      // status: "UNDER_REVIEW"
     },
   });
 
