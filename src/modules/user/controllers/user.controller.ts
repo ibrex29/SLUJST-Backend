@@ -18,7 +18,7 @@ export class UserController {
 
     
     @Post()
-    @Role(UserType.EDITOR_IN_CHIEF,UserType.SUPERADMIN,UserType.MANAGING_EDITOR)  
+    @Role(UserType.EDITOR_IN_CHIEF,UserType.SUPERADMIN,UserType.MANAGING_EDITOR,UserType.AUTHOR)  
     @ApiOperation({ summary: 'Register a new User' })
     @ApiResponse({ status: 200, description: 'User registered successfully.' })
     @ApiResponse({ status: 400, description: 'Invalid input data ' })

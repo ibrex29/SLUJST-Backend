@@ -50,7 +50,7 @@ export class ManuscriptController {
   })
   async assignManuscriptToSection(
     @Body() assignManuscriptToSectionDto: AssignManuscriptToSectionDto,
-    @Request() req // You can use this if you need to access the user's info
+    @Request() req 
   ) {
     return this.manuscriptService.assignManuscriptToSection(assignManuscriptToSectionDto);
   }

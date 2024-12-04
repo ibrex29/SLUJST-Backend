@@ -113,7 +113,8 @@ async assignManuscriptToSection(assignManuscriptToSectionDto: AssignManuscriptTo
   const updatedManuscript = await this.prisma.manuscript.update({
     where: { id: manuscriptId },
     data: {
-      sectionId: sectionId, // Assign the section ID
+      sectionId: sectionId,
+      status: "UNDER_REVIEW"
     },
   });
 
