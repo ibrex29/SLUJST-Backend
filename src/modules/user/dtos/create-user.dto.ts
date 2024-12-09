@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsEmail, IsString, MinLength, Matches, IsEnum, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
 import { UserType } from '../types/user.type';
 
 
@@ -15,7 +15,6 @@ export class CreateUserDto {
 
   @ApiProperty({ example: 'Mr', description: 'The title of the author', enum: Title })
   @IsOptional()
-  @IsEnum(Title, { message: 'Invalid title. Available titles are Mr, Mrs, Miss, Dr, Prof' })
   title?: string;
   
   @ApiProperty({ example: 'john.doe@example.com', description: 'The email address of the author' })
