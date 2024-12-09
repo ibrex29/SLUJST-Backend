@@ -140,4 +140,30 @@ export class ReviewService {
   getAllRecommendations(): Recommendation[] {
     return Object.values(Recommendation);
   }
+
+  async openReview(reviewId: string): Promise<string> {
+    const review = await this.prisma.review
+      .update({
+        where: { id: reviewId },
+        data: { isClosed: false },
+      })
+      .catch(() => null);
+
+    if (!review)
+      throw new NotFoundException('Review not found or already opened.');
+    return 'Review opened successfully.';
+  }
+
+  async hasReview(manuscriptId: string): Promise<{ hasReview: boolean }> {
+    // Count the number of reviews for the given manuscript ID
+    const reviewCount = await this.prisma.review.count({
+      where: {
+        manuscriptId: manuscriptId,
+      },
+    });
+
+    // Return true if there is at least one review, otherwise false
+    return { hasReview: reviewCount > 0 };
+  }
+
 }

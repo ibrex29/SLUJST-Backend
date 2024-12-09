@@ -77,4 +77,18 @@ export class ReviewController {
   closeReview(@Param('id') reviewId: string) {
     return this.reviewService.closeReview(reviewId);
   }
+
+  @Role(UserType.REVIEWER)
+  @Patch(':id/open')
+  openReview(@Param('id') reviewId: string) {
+    return this.reviewService.openReview(reviewId);
+  }
+
+  @Get(':id/has-review')
+  async checkReview(
+    @Param('id') manuscriptId: string,
+  ): Promise<{ hasReview: boolean }> {
+    return this.reviewService.hasReview(manuscriptId);
+  }
+
 }
