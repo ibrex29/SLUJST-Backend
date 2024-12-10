@@ -3,7 +3,7 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y openssl libssl-dev
+# RUN apt-get update && apt-get install -y openssl libssl-dev
 
 # Set Prisma CLI version
 ENV PRISMA_CLI_VERSION=3.0.0
