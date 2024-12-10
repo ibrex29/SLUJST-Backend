@@ -7,7 +7,7 @@ WORKDIR /app
 # Install build dependencies for Prisma and OpenSSL
 RUN apk add --no-cache \
     openssl \
-    libssl1.1 \
+    libssl3 \
     bash
 
 # Set Prisma CLI version
