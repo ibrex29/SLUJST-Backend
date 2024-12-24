@@ -1,6 +1,8 @@
 # Use the official Node.js 16 image as the base image
 FROM node:20-alpine AS build
 
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # RUN apt-get update && apt-get install -y openssl libssl-dev
