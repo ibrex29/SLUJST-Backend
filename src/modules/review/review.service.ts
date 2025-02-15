@@ -60,7 +60,7 @@ export class ReviewService {
     const reviewerId = await this.getReviewerIdForLoggedUser(userId);
 
     const manuscript = await this.prisma.manuscript.findFirst({
-      where: { id: manuscriptId, reviewerId },
+      where: { id: manuscriptId, },
     });
     if (!manuscript) {
       throw new ForbiddenException(
@@ -111,15 +111,15 @@ export class ReviewService {
 
     const manuscript = await this.prisma.manuscript.findUnique({
       where: { id: manuscriptId },
-      include: { Reviewer: true },
+      include: { Reviewers: true },
     });
     if (!manuscript) throw new NotFoundException(`Manuscript with ID ${manuscriptId} not found`);
 
-    if (manuscript.reviewerId !== reviewer.id) {
-      throw new ForbiddenException(
-        `User with ID ${userId} is not the assigned reviewer for this manuscript`,
-      );
-    }
+    // if (manuscript.reviewerId !== reviewer.id) {
+    //   throw new ForbiddenException(
+    //     `User with ID ${userId} is not the assigned reviewer for this manuscript`,
+    //   );
+    // }
 
     return this.prisma.manuscript.update({
       where: { id: manuscriptId },

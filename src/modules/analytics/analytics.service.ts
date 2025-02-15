@@ -25,22 +25,33 @@ export class AnalyticsService {
 
   async getReviewerWithManuscriptsAndAnalytics(reviewerId: string) {
     const manuscripts = await this.prisma.manuscript.findMany({
-      where: { reviewerId },
+      where: {
+        Reviewers: {
+          some: { id: reviewerId }, 
+        },
+      },
+      select: {
+        status: true,
+      },
     });
-
+  
     if (!manuscripts.length) {
       throw new NotFoundException(`No manuscripts found for Reviewer with ID ${reviewerId}`);
     }
-
-    const allStatuses = await this.getAllPossibleStatuses(); // Fetch all statuses
+  
+    // Fetch all possible statuses
+    const allStatuses = await this.getAllPossibleStatuses();
+  
+    // Initialize status counts
     const statusCounts = manuscripts.reduce((acc, manuscript) => {
       const statusKey = manuscript.status.toLowerCase();
       acc[statusKey] = (acc[statusKey] || 0) + 1;
       return acc;
     }, { ...this.initializeStatusCounts(allStatuses), assigned: manuscripts.length });
-
+  
     return { manuscriptCounts: statusCounts };
   }
+  
 
   async getManuscriptsAnalyticsForLoggedInUser(userId: string) {
     const reviewer = await this.prisma.reviewer.findFirst({
