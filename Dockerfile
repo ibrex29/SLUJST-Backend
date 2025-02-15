@@ -5,8 +5,6 @@ RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-# RUN apt-get update && apt-get install -y openssl libssl-dev
-
 # Set Prisma CLI version
 ENV PRISMA_CLI_VERSION=3.0.0
 

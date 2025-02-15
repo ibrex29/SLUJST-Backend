@@ -60,7 +60,6 @@ export class ManuscriptController {
   @Get('section-editor')
   async getManuscriptsForSectionEditor(
     @Request() req): Promise<ManuscriptDto[]> {
-    // const userId = req.user.id; // Assuming the user's ID is available in req.user
     return this.manuscriptService.getManuscriptsForSectionEditor( req.user?.userId);
   }
 
@@ -82,7 +81,7 @@ export class ManuscriptController {
   async assignReviewerToManuscript(
     @Body() assignReviewerDto: AssignReviewerDto
   ): Promise<{ message: string; manuscript: Manuscript }> {
-    return this.manuscriptService.assignReviewerToManuscript(assignReviewerDto);
+    return this.manuscriptService.assignReviewersToManuscript(assignReviewerDto);
   }
   
   @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
@@ -104,20 +103,20 @@ export class ManuscriptController {
   // }
 
   
-  @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
-  @Get('assigned')
-  @ApiOperation({ summary: 'Get all assigned manuscripts' })
-  async getAllAssignedManuscripts() {
-    return this.manuscriptService.getAllAssignedManuscripts();
-  }
+  // @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
+  // @Get('assigned')
+  // @ApiOperation({ summary: 'Get all assigned manuscripts' })
+  // async getAllAssignedManuscripts() {
+  //   return this.manuscriptService.getAllAssignedManuscripts();
+  // }
 
 
-  @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
-  @Get('unassigned')
-  @ApiOperation({ summary: 'Get all unassigned manuscripts' })
-  async getAllUnassignedManuscripts() {
-    return this.manuscriptService.getAllUnassignedManuscripts();
-  }
+  // @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
+  // @Get('unassigned')
+  // @ApiOperation({ summary: 'Get all unassigned manuscripts' })
+  // async getAllUnassignedManuscripts() {
+  //   return this.manuscriptService.getAllUnassignedManuscripts();
+  // }
 
   @Get(':manuscriptId/details')
   @Role(UserType.EDITOR_IN_CHIEF,UserType.SECTION_EDITOR)
@@ -141,19 +140,19 @@ export class ManuscriptController {
   async getManuscriptsByStatus(@Param('status') status: Status) {
     return this.manuscriptService.getManuscriptsByStatus(status);
   }
-  @Public()
-  @ApiOperation({ summary: 'Get statistics of manuscripts ' })
-  @ApiResponse({
-    status: 200,
-    description: 'Manuscripts stats retreived  successfully.',
-  })
+  // @Public()
+  // @ApiOperation({ summary: 'Get statistics of manuscripts ' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Manuscripts stats retreived  successfully.',
+  // })
   
-  @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
-  @Get("analytics")
-  // @Role(UserType.EDITOR)
-  async getStatistics() {
-    return this.manuscriptService.getStatistics();
-  }
+  // @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
+  // @Get("analytics")
+  // // @Role(UserType.EDITOR)
+  // async getStatistics() {
+  //   return this.manuscriptService.getStatistics();
+  // }
 
 
 

@@ -53,11 +53,11 @@ model Reviewer {
   id            String        @id @default(uuid())
   userId        String       @unique
   expertiseArea String
-  Manuscript    Manuscript[]
   Review        Review[]
   sectionId     String 
   Section       Section?  @relation("SectionReviewer", fields: [sectionId], references: [id]) 
   User          User         @relation(fields: [userId], references: [id])
+  Manuscript Manuscript[] @relation("ManuscriptReviewers")
 }
 
 model Section {
@@ -73,7 +73,7 @@ model Section {
 }
 
 model Manuscript {
-  id                String    @id @default(uuid())
+  id                String     @id @default(uuid())
   title             String
   abstract          String
   keywords          String
@@ -81,30 +81,26 @@ model Manuscript {
   coAuthor          String?
   status            Status
   authorId          String
-  createdAt         DateTime  @default(now())
+  createdAt         DateTime   @default(now())
   createdBy         String
   suggestedReviewer String?
-  updatedAt         DateTime  @updatedAt
+  updatedAt         DateTime   @updatedAt
   updatedBy         String
   isPublished       Boolean
-  assigmentDate     DateTime? @default(now())
+  assigmentDate     DateTime?  @default(now())
   reviewDueDate     DateTime?
-  reviewerId        String?
   sectionId         String?   
-  Author            Author    @relation(fields: [authorId], references: [id])
-  Reviewer          Reviewer? @relation(fields: [reviewerId], references: [id])
+  Author            Author     @relation(fields: [authorId], references: [id])
   Review            Review[]
   Publication       Publication[]
-
-  Section           Section?  @relation("SectionManuscripts", fields: [sectionId], references: [id]) 
+  Section           Section?   @relation("SectionManuscripts", fields: [sectionId], references: [id]) 
   Document          Document[]
-
+  Reviewers         Reviewer[] @relation("ManuscriptReviewers") 
 
   @@index([status])
   @@index([authorId])
   @@index([sectionId])
 }
-
 model Document {
   id                String      @id @default(uuid())
   manuscriptLink    String
