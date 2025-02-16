@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsEnum, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsEnum, IsUUID, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Recommendation } from '@prisma/client';
 
@@ -36,10 +36,10 @@ export class FinalRemarkDto {
   recommendation: Recommendation;
 
   @ApiProperty({
-    example: 'The manuscript is well-structured but requires minor revisions in the introduction section.',
+    example: 'Final Commentt to Suppor your recommendation and is optional',
     description: 'Comments about the manuscript',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   remark: string;
 
