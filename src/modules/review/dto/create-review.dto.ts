@@ -34,4 +34,13 @@ export class FinalRemarkDto {
   @IsNotEmpty()
   @IsEnum(Recommendation)
   recommendation: Recommendation;
+
+  @ApiProperty({
+    example: 'The manuscript is well-structured but requires minor revisions in the introduction section.',
+    description: 'Comments about the manuscript',
+  })
+  @IsNotEmpty()
+  @IsString()
+  remark: string;
+
 }

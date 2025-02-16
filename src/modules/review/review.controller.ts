@@ -103,6 +103,6 @@ export class ReviewController {
     @Body() finalRemarkDto: FinalRemarkDto,
     @User("userId") userId: string,
   ) {
-    return this.reviewService.submitFinalRemark(userId, manuscriptId, finalRemarkDto.recommendation);
+    return this.reviewService.submitFinalRemark(userId, manuscriptId, finalRemarkDto.recommendation, finalRemarkDto.remark);
   }
 }

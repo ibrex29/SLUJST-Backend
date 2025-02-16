@@ -234,7 +234,7 @@ export class ReviewService {
     return { hasReview: reviewCount > 0 };
   }
 
-  async submitFinalRemark(userId: string, manuscriptId: string, recommendation: Recommendation) {
+  async submitFinalRemark(userId: string, manuscriptId: string, recommendation: Recommendation,remark:string) {
     const reviewerId = await this.getReviewerIdForLoggedUser(userId);
   
     const manuscript = await this.prisma.manuscript.findFirst({
@@ -267,7 +267,9 @@ export class ReviewService {
         data: {
           manuscriptId,
           recommendation,
+          remark:remark,
           createdByUserId: reviewerId, 
+
         },
       }),
     ]);
