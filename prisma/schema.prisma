@@ -22,11 +22,16 @@ model User {
   Author      Author?
   Editor      Editor?
   Reviewer    Reviewer?
+
+
   roles       Role[]      @relation("UserRoles")
   publications Publication[]
   reactions       Reaction[]
   commentsCreated Comment[]  @relation(name: "comment_created_by")
   commentsUpdated Comment[]  @relation(name: "comment_updated_by")
+  createManuscript Manuscript[] @relation(name: "manuscript_created_by")
+  updatedManuscript Manuscript[] @relation(name: "manuscript_updated_by")
+  Reply Reply[] @relation(name: "ReplyCreatedBy")
 }
 
 model Author {
@@ -57,7 +62,9 @@ model Reviewer {
   sectionId     String 
   Section       Section?  @relation("SectionReviewer", fields: [sectionId], references: [id]) 
   User          User         @relation(fields: [userId], references: [id])
-  Manuscript Manuscript[] @relation("ManuscriptReviewers")
+  ManuscriptReviewer ManuscriptReviewer[]
+  createdReview Review[] @relation(name: "review_created_by")
+  createdActionLog ActionLog[] @relation(name: "action_created_by")
 }
 
 model Section {
@@ -77,16 +84,18 @@ model Manuscript {
   title             String
   abstract          String
   keywords          String
-  author            String?
+  authorName        String?
   coAuthor          String?
   status            Status
   authorId          String
   createdAt         DateTime   @default(now())
-  createdBy         String
+  createdByUserId   String?
+  updatedByUserId   String?
+  createdBy         User?      @relation(fields: [createdByUserId], references: [id], name: "manuscript_created_by")
+  updatedBy         User?      @relation(fields: [updatedByUserId], references: [id], name: "manuscript_updated_by")
   suggestedReviewer String?
   updatedAt         DateTime   @updatedAt
-  updatedBy         String
-  isPublished       Boolean
+  isPublished       Boolean   @default(false)
   assigmentDate     DateTime?  @default(now())
   reviewDueDate     DateTime?
   sectionId         String?   
@@ -95,11 +104,40 @@ model Manuscript {
   Publication       Publication[]
   Section           Section?   @relation("SectionManuscripts", fields: [sectionId], references: [id]) 
   Document          Document[]
-  Reviewers         Reviewer[] @relation("ManuscriptReviewers") 
+  Reviewers         ManuscriptReviewer[]
+  ActionLog         ActionLog[]
 
   @@index([status])
   @@index([authorId])
   @@index([sectionId])
+}
+
+model ManuscriptReviewer {
+  id            String     @id @default(uuid())
+  manuscriptId  String
+  reviewerId    String
+  assignedAt    DateTime   @default(now())
+  dueDate       DateTime?
+
+  manuscript    Manuscript @relation(fields: [manuscriptId], references: [id])
+  reviewer      Reviewer   @relation(fields: [reviewerId], references: [id])
+
+  @@unique([manuscriptId, reviewerId])
+  @@index([manuscriptId])
+  @@index([reviewerId])
+}
+
+model ActionLog {
+  id            String     @id @default(uuid())
+  manuscriptId  String
+  recommendation  Recommendation
+  remark        String?
+  performedAt   DateTime   @default(now())
+  manuscript    Manuscript @relation(fields: [manuscriptId], references: [id])
+  createdByUserId     String?
+  createdBy           Reviewer?   @relation(fields: [createdByUserId], references: [id], name: "action_created_by")
+
+  @@index([manuscriptId])
 }
 model Document {
   id                String      @id @default(uuid())
@@ -115,33 +153,44 @@ model Document {
 model Review {
   id             String          @id @default(uuid())
   manuscriptId   String
-  reviewerId     String
+  reviewerId     String?
   reviewDate     DateTime
   comments       String
   recommendation Recommendation
   authorId       String
-  isClosed       Boolean
+  isClosed       Boolean         @default(false)
   Reply          Reply[]
-  Author         Author         @relation(fields: [authorId], references: [id])
-  Manuscript     Manuscript     @relation(fields: [manuscriptId], references: [id])
-  Reviewer       Reviewer       @relation(fields: [reviewerId], references: [id])
+
+  Author         Author     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  Manuscript     Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+  Reviewer       Reviewer?  @relation(fields: [reviewerId], references: [id], onDelete: SetNull) 
+  createdByUserId     String?
+  createdBy           Reviewer?   @relation(fields: [createdByUserId], references: [id], name: "review_created_by")
+
+
+  @@index([manuscriptId])
+  @@index([reviewerId])
+  @@index([authorId])
 }
 
 model Reply {
-  id          String   @id @default(uuid())
-  reviewId    String
-  authorId    String
-  subject     String
-  contents    String
-  uploadFiles String?
-  isauthor    Boolean @default(true)
-  createdAt   DateTime @default(now())
-  createdBy         String
-  updatedAt         DateTime  @updatedAt
-  updatedBy         String
-  Author      Author   @relation(fields: [authorId], references: [id])
-  Review      Review   @relation(fields: [reviewId], references: [id])
+  id               String   @id @default(uuid())
+  reviewId         String
+  authorId         String
+  subject          String
+  contents         String
+  uploadFiles      String?
+  isAuthor         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  createdByUserId  String? 
+  updatedByUserId  String?
+  updatedAt        DateTime @updatedAt
+
+  Author      Author @relation(fields: [authorId], references: [id])
+  Review      Review @relation(fields: [reviewId], references: [id])
+  CreatedBy   User?   @relation(fields: [createdByUserId], references: [id], name: "ReplyCreatedBy") 
 }
+
 
 model Publication {
   id                 String      @id @default(uuid())
@@ -162,9 +211,9 @@ model Publication {
   Manuscript         Manuscript? @relation(fields: [manuscriptId], references: [id])
   issueId            String
   Issue              Issue       @relation(fields: [issueId], references: [id])
-  reactions          Reaction[]
+
   comments           Comment[]   @relation(name: "publication_comments")
-  Reaction Reaction[] @relation(name: "publication_comments")
+  Reactions Reaction[] @relation(name: "publication_reaction")
 }
 
 model Issue {
@@ -203,17 +252,18 @@ model Comment {
 }
 
 model Reaction {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
+  id            String   @id @default(uuid())
+  createdAt     DateTime @default(now())
+  
   publicationId String
-  publication   Publication @relation(fields: [publicationId], references: [id], name: "publication_comments")
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  Publication   Publication @relation(fields: [publicationId], references: [id], name: "publication_reaction")
 
-  type ReactionType
+  userId        String
+  User          User       @relation(fields: [userId], references: [id])
+
+  type          ReactionType
 
   @@unique([publicationId, userId])
-  Publication Publication[]
 }
 
 model Permission {

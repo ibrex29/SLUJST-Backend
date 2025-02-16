@@ -23,6 +23,7 @@ import { Public, Role } from 'src/common/constants/routes.constant';
 import { UserType } from '../user/types/user.type';
 import { RolesGuard } from '../auth/guard/role.guard';
 import { UpdateAuthorDto } from './dtos/update-author.dto';
+import { User } from 'src/common/decorators/param-decorator/User.decorator';
 
 @ApiBearerAuth()
 @ApiTags('author')
@@ -43,15 +44,15 @@ export class AuthorController {
   @Role(UserType.AUTHOR)
   @Get('submitted-manuscripts')
   @ApiOperation({ summary: 'Get all manuscripts submitted by logged-in author' })
-  async getSubmittedManuscriptsForLoggedInUser(@Request() req) {
-    return this.authorService.getSubmittedManuscriptsForLoggedInUser(req.user?.userId);
+  async getSubmittedManuscriptsForLoggedInUser(@User("userId") userId: string) {
+    return this.authorService.getSubmittedManuscriptsForLoggedInUser(userId);
   }
 
   @Role(UserType.AUTHOR)
   @Get('status-counts')
   @ApiOperation({ summary: 'Get manuscript status counts for the logged-in author' })
-  async getManuscriptCounts(@Request() req) {
-    return this.authorService.getManuscriptCountsForAuthor(req.user?.userId);
+  async getManuscriptCounts(@User("userId") userId: string) {
+    return this.authorService.getManuscriptCountsForAuthor(userId);
   }
 
   // @Put(':id')

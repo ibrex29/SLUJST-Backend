@@ -10,6 +10,7 @@ import { AssignReviewerDto } from './dto/assign-reviewer.dto';
 import { AssignManuscriptToSectionDto } from './dto/assign-manuscript-to-section.dto';
 import { ManuscriptDto } from './dto/manuscript.dto';
 import { ReviewerDto } from '../user/dtos/grouped-reviewers.dto';
+import { User } from 'src/common/decorators/param-decorator/User.decorator';
 
 
 @ApiTags('manuscripts')
@@ -27,13 +28,14 @@ export class ManuscriptController {
   async create(
     @Request() req,
     @Body() createManuscriptDto: CreateManuscriptDto,
+    @User("userId") userId:string,
   ) {
     return this.manuscriptService.uploadManuscript(
       createManuscriptDto,
-      req.user?.userId)
+      userId)
   }
 
-  @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
+  // @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
   @Patch('assign-section')
   @ApiOperation({ summary: 'Assign manuscript to a section by editor in chief or manahing editor' })
   @ApiResponse({
@@ -50,7 +52,6 @@ export class ManuscriptController {
   })
   async assignManuscriptToSection(
     @Body() assignManuscriptToSectionDto: AssignManuscriptToSectionDto,
-    @Request() req 
   ) {
     return this.manuscriptService.assignManuscriptToSection(assignManuscriptToSectionDto);
   }
@@ -59,49 +60,34 @@ export class ManuscriptController {
   @ApiOperation({ summary: 'Get manuscript assigned to the section of the logged in section editor' })
   @Get('section-editor')
   async getManuscriptsForSectionEditor(
-    @Request() req): Promise<ManuscriptDto[]> {
-    return this.manuscriptService.getManuscriptsForSectionEditor( req.user?.userId);
+    @User("userId") userId:string,): Promise<ManuscriptDto[]> {
+    return this.manuscriptService.getManuscriptsForSectionEditor( userId);
   }
 
-  @Role(UserType.SECTION_EDITOR)
+  // @Role(UserType.SECTION_EDITOR)
   @Get('reviewers-for-section-editor')
   @ApiOperation({ summary: 'Get reviewers assigned to the section of the logged-in section editor' })
   @ApiResponse({ status: 200, description: 'Reviewers fetched successfully' })
   @ApiResponse({ status: 404, description: 'Not found' })
-  async getReviewersForSectionEditor( @Request() req):Promise<ReviewerDto[]> {
-    return this.manuscriptService.getReviewersForSectionEditor(req.user?.userId);
+  async getReviewersForSectionEditor( @User("userId") userId:string,):Promise<ReviewerDto[]> {
+    return this.manuscriptService.getReviewersForSectionEditor(userId);
   }
-
+@Public()
   // @Role(UserType.SECTION_EDITOR)
-  @Patch('assign-reviewer')
-  @ApiOperation({ summary: 'Assign manuscript to a reviewer by section editor' })
-  @ApiResponse({ status: 200, description: 'Reviewer assigned successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 404, description: 'Not found' })
-  async assignReviewerToManuscript(
-    @Body() assignReviewerDto: AssignReviewerDto
-  ): Promise<{ message: string; manuscript: Manuscript }> {
-    return this.manuscriptService.assignReviewersToManuscript(assignReviewerDto);
+  @Post('assign-reviewers')
+  @ApiOperation({ summary: 'Assign reviewers to a manuscript' })
+  @ApiResponse({ status: 200, description: 'Reviewers assigned successfully' })
+  async assignManuscriptToReviewers(@Body() dto: AssignReviewerDto) {
+    return this.manuscriptService.assignManuscriptToReviewers(dto);
   }
   
-  @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
+  // @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
   @Get('submitted')
   @ApiOperation({ summary: 'List all submitted manuscripts' })
   async listSubmitted(): Promise<Manuscript[]> {
     return this.manuscriptService.listSubmittedManuscripts();
   }
-
-
-  // @Public()
-  // @Post('assign-reviewer')
-  // // @Role(UserType.EDITOR)  
-  // @ApiOperation({ summary: 'Assign a reviewer to a manuscript' })
-  // @ApiCreatedResponse({ description: 'The reviewer has been successfully assigned to the manuscript.' })
-  // @ApiBadRequestResponse({ description: 'Invalid data provided or reviewer already assigned.' })
-  // async assignReviewer(@Body() assignReviewerDto: AssignReviewerDto) {
-  //   return this.manuscriptService.assignManuscriptToReviewer(assignReviewerDto);
-  // }
-
+ 
   
   // @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
   // @Get('assigned')

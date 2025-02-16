@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
@@ -21,30 +22,96 @@ export class ReviewService {
     return reviewer;
   }
 
-  async getManuscriptsAssignedToReviewer(reviewerId: string) {
-    const manuscripts = await this.prisma.reviewer.findUnique({
-      where: { id: reviewerId },
-      include: { Manuscript: true },
-    });
-    if (!manuscripts) throw new NotFoundException(`Reviewer with ID ${reviewerId} not found`);
-    return manuscripts.Manuscript;
-  }
+  // async getManuscriptsAssignedToReviewer(reviewerId: string) {
+  //   try {
+  //     const manuscripts = await this.prisma.manuscriptReviewer.findMany({
+  //       where: { reviewerId },
+  //       include: {
+  //         manuscript: {
+  //           include: {
+  //             Author: true,
+  //             Document: true,
+  //             Reviewers: {
+  //               include: {
+  //                 reviewer: true,
+  //               },
+  //             },
+  //             Review: {
+  //               include: {
+  //                 Reviewer: {
+  //                   include: {
+  //                     User: true,
+  //                   },
+  //                 },
+  //               },
+  //             },
+  //           },
+  //         },
+  //       },
+  //     });
+  
+  //     if (!manuscripts.length) {
+  //       throw new NotFoundException(`No manuscripts assigned to reviewer with ID ${reviewerId}`);
+  //     }
+  
+  //     return manuscripts.map((assignment) => assignment.manuscript);
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(`Failed to retrieve assigned manuscripts: ${error.message}`);
+  //   }
+  // }
 
-  async getReviewerWithManuscripts(reviewerId: string) {
-    const reviewer = await this.prisma.reviewer.findUnique({
-      where: { id: reviewerId },
-      include: { Manuscript: { include: { Document: true } } },
+  async getManuscriptsAssignedToReviewer(reviewerId: string) {
+    return await this.prisma.manuscript.findMany({
+      where: {
+        Reviewers: {
+          some: {
+            reviewerId: reviewerId, 
+          },
+        },
+      },
+      include: {
+        Author: true,       
+        Section: true,       
+        Document: true,
+        ActionLog: {
+          include: {
+            createdBy: {
+              include: {
+                User: true,
+              },
+            },
+          },
+        },
+        Review: {
+          where: {
+            reviewerId: reviewerId, 
+          },
+        },    
+        Reviewers: {
+          include: {
+            reviewer: true, 
+          },
+        },
+      },
     });
-    if (!reviewer) throw new NotFoundException(`Reviewer with ID ${reviewerId} not found`);
-    return reviewer;
   }
+  
+  
+  // async getReviewerWithManuscripts(reviewerId: string) {
+  //   const reviewer = await this.prisma.reviewer.findUnique({
+  //     where: { id: reviewerId },
+  //     include: { Manuscript: { include: { Document: true } } },
+  //   });
+  //   if (!reviewer) throw new NotFoundException(`Reviewer with ID ${reviewerId} not found`);
+  //   return reviewer;
+  // }
 
   async getManuscriptsAssignedForLoggedInUser(userId: string) {
     const reviewer = await this.prisma.reviewer.findUnique({
       where: { userId },
     });
     if (!reviewer) throw new NotFoundException(`Reviewer with User ID ${userId} not found`);
-    return this.getReviewerWithManuscripts(reviewer.id);
+    return this.getManuscriptsAssignedToReviewer(reviewer.id);
   }
 
   async getReviewerIdForLoggedUser(userId: string) {
@@ -77,6 +144,7 @@ export class ReviewService {
         recommendation,
         authorId: manuscript.authorId,
         isClosed: false,
+        createdByUserId:reviewerId
       },
     });
   }
@@ -165,5 +233,45 @@ export class ReviewService {
     // Return true if there is at least one review, otherwise false
     return { hasReview: reviewCount > 0 };
   }
+
+  async submitFinalRemark(userId: string, manuscriptId: string, recommendation: Recommendation) {
+    const reviewerId = await this.getReviewerIdForLoggedUser(userId);
+  
+    const manuscript = await this.prisma.manuscript.findFirst({
+      where: {
+        id: manuscriptId,
+        Reviewers: {
+          some: { reviewerId: reviewerId }, 
+        },
+      },
+    });
+  
+    if (!manuscript) {
+      throw new ForbiddenException(
+        `Manuscript with ID ${manuscriptId} is not assigned to this reviewer`,
+      );
+    }
+
+    return this.prisma.$transaction([
+      this.prisma.review.updateMany({
+        where: {
+          manuscriptId,
+          reviewerId,
+        },
+        data: {
+          recommendation,
+          isClosed: true, 
+        },
+      }),
+      this.prisma.actionLog.create({
+        data: {
+          manuscriptId,
+          recommendation,
+          createdByUserId: reviewerId, 
+        },
+      }),
+    ]);
+  }
+  
 
 }

@@ -5,27 +5,24 @@ import { PrismaService } from 'prisma/prisma.service';
 import { CreatePermissionDto } from 'src/modules/user/dtos/roles-permissions/create-permission.dto';
 import { UpdatePermissionDto } from 'src/modules/user/dtos/roles-permissions/update-permission.dto';
 import { UpdateRoleDto } from 'src/modules/user/dtos/roles-permissions/update-role.dto';
+import { CreateRoleDto } from '../user/dtos/roles-permissions/create-role.dto';
 
 @Injectable()
 export class RolesPermissionsService {
   constructor(private prisma: PrismaService) {}
 
 
-async createRole(roleName: string, userId: string): Promise<Role> {
-    const existingRole = await this.prisma.role.findUnique({
-      where: { roleName },
-    });
+  async createRoles(createRoleDtos: CreateRoleDto[]): Promise<any> {
+    const rolesData = createRoleDtos.map(role => ({
+      roleName: role.roleName,
+      description: role.description || '',
+      createdBy: "userId", // Replace with actual user ID from request context
+      updatedBy: "userId",
+    }));
 
-    if (existingRole) {
-      throw new Error(`Role with name ${roleName} already exists`);
-    }
-
-    return this.prisma.role.create({
-      data: {
-        roleName,
-        createdBy: userId,
-        updatedBy: userId,
-      },
+    return this.prisma.role.createMany({
+      data: rolesData,
+      skipDuplicates: true, // Avoids duplicate role insertion errors
     });
   }
 

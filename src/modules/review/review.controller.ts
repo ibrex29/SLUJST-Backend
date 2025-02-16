@@ -6,21 +6,24 @@ import {
   Param,
   UseGuards,
   Request,
-  Patch
+  Patch,
+  Put
 } from '@nestjs/common';
 import { ReviewService } from './review.service';
 import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiResponse,
   ApiTags
 } from '@nestjs/swagger';
 import { Public, Role } from 'src/common/constants/routes.constant';
 import { Recommendation, Reply } from '@prisma/client';
 import { RolesGuard } from 'src/modules/auth/guard/role.guard';
 import { UserType } from 'src/modules/user/types/user.type';
-import { CreateReviewDto } from './dto/create-review.dto';
+import { CreateReviewDto, FinalRemarkDto } from './dto/create-review.dto';
 import { AcceptRejectManuscriptDto } from './dto/accept-reject-manuscript.dto';
+import { User } from 'src/common/decorators/param-decorator/User.decorator';
 
 @ApiBearerAuth()
 @ApiTags('review')
@@ -32,8 +35,8 @@ export class ReviewController {
   @Role(UserType.REVIEWER)
   @Get('assigned-manuscript')
   @ApiOperation({ summary: 'Get assigned manuscripts for the logged-in reviewer' })
-  getAssignedManuscriptsForLoggedInUser(@Request() req) {
-    return this.reviewService.getManuscriptsAssignedForLoggedInUser(req.user?.userId);
+  getAssignedManuscriptsForLoggedInUser(@User ("userId") userId:string) {
+    return this.reviewService.getManuscriptsAssignedForLoggedInUser(userId);
   }
 
   @Public()
@@ -46,8 +49,8 @@ export class ReviewController {
   @Post('create-review')
   @Role(UserType.REVIEWER)
   @ApiOperation({ summary: 'Create a review for a manuscript' })
-  createReview(@Request() req, @Body() createReviewDto: CreateReviewDto) {
-    return this.reviewService.createReview(req.user?.userId, createReviewDto);
+  createReview(@User("userId") userId: string, @Body() createReviewDto: CreateReviewDto) {
+    return this.reviewService.createReview(userId, createReviewDto);
   }
 
   @Role(UserType.REVIEWER)
@@ -91,4 +94,15 @@ export class ReviewController {
     return this.reviewService.hasReview(manuscriptId);
   }
 
+  @Put(':manuscriptId/final-remark')
+  @ApiOperation({ summary: 'Submit final remark on a manuscript' })
+  @ApiResponse({ status: 200, description: 'Final remark submitted successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden: Reviewer not assigned to this manuscript' })
+  async submitFinalRemark(
+    @Param('manuscriptId') manuscriptId: string,
+    @Body() finalRemarkDto: FinalRemarkDto,
+    @User("userId") userId: string,
+  ) {
+    return this.reviewService.submitFinalRemark(userId, manuscriptId, finalRemarkDto.recommendation);
+  }
 }

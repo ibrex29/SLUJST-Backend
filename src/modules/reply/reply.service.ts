@@ -79,127 +79,127 @@ export class ReplyService {
   }
   
 
-  async createReply(
-    userId: string,
-    createReplyDto: CreateReplyDto,
-  ): Promise<Reply> {
-    const { reviewId, subject, contents, uploadFiles } = createReplyDto;
+  // async createReply(
+  //   userId: string,
+  //   createReplyDto: CreateReplyDto,
+  // ): Promise<Reply> {
+  //   const { reviewId, subject, contents, uploadFiles } = createReplyDto;
 
-    try {
-      // Get the author's ID based on the user's ID
-      const author = await this.prisma.author.findUnique({
-        where: { userId: userId },
-      });
+  //   try {
+  //     // Get the author's ID based on the user's ID
+  //     const author = await this.prisma.author.findUnique({
+  //       where: { userId: userId },
+  //     });
 
-      if (!author) {
-        throw new NotFoundException(`Author with User ID ${userId} not found`);
-      }
+  //     if (!author) {
+  //       throw new NotFoundException(`Author with User ID ${userId} not found`);
+  //     }
 
-      // Validate that the review exists
-      const review = await this.prisma.review.findUnique({
-        where: { id: reviewId },
-        include: { Manuscript: true }, // Include the manuscript to check ownership
-      });
+  //     // Validate that the review exists
+  //     const review = await this.prisma.review.findUnique({
+  //       where: { id: reviewId },
+  //       include: { Manuscript: true }, // Include the manuscript to check ownership
+  //     });
 
-      if (!review) {
-        throw new NotFoundException(`Review with ID ${reviewId} not found`);
-      }
+  //     if (!review) {
+  //       throw new NotFoundException(`Review with ID ${reviewId} not found`);
+  //     }
 
-      // Validate that the manuscript belongs to the author
-      if (review.Manuscript.authorId !== author.id) {
-        throw new ForbiddenException(
-          `The manuscript for the review is not authored by the logged-in user`,
-        );
-      }
+  //     // Validate that the manuscript belongs to the author
+  //     if (review.Manuscript.authorId !== author.id) {
+  //       throw new ForbiddenException(
+  //         `The manuscript for the review is not authored by the logged-in user`,
+  //       );
+  //     }
 
-      // Create the reply
-      return await this.prisma.reply.create({
-        data: {
-          reviewId,
-          authorId: author.id,
-          subject,
-          contents,
-          uploadFiles,
-          createdBy: '',
-          updatedBy: '',
-        },
-      });
-    } catch (error) {
-      console.error('Error creating reply:', error);
+  //     // Create the reply
+  //     return await this.prisma.reply.create({
+  //       data: {
+  //         reviewId,
+  //         authorId: author.id,
+  //         subject,
+  //         contents,
+  //         uploadFiles,
+  //         createdBy: '',
+  //         updatedBy: '',
+  //       },
+  //     });
+  //   } catch (error) {
+  //     console.error('Error creating reply:', error);
 
-      if (
-        error instanceof NotFoundException ||
-        error instanceof ForbiddenException
-      ) {
-        throw error;
-      }
+  //     if (
+  //       error instanceof NotFoundException ||
+  //       error instanceof ForbiddenException
+  //     ) {
+  //       throw error;
+  //     }
 
-      throw new InternalServerErrorException('Failed to create reply');
-    }
-  }
+  //     throw new InternalServerErrorException('Failed to create reply');
+  //   }
+  // }
 
-  async createReviewerReply(userId: string, createReplyDto: CreateReplyDto): Promise<Reply> {
-    const { reviewId, subject, contents, uploadFiles } = createReplyDto;
+  // async createReviewerReply(userId: string, createReplyDto: CreateReplyDto): Promise<Reply> {
+  //   const { reviewId, subject, contents, uploadFiles } = createReplyDto;
 
-    try {
-      const reviewer = await this.prisma.reviewer.findUnique({
-        where: { userId: userId },
-      });
+  //   try {
+  //     const reviewer = await this.prisma.reviewer.findUnique({
+  //       where: { userId: userId },
+  //     });
 
-      if (!reviewer) {
-        throw new NotFoundException(`Reviewer with User ID ${userId} not found`);
-      }
+  //     if (!reviewer) {
+  //       throw new NotFoundException(`Reviewer with User ID ${userId} not found`);
+  //     }
 
-      // Validate that the review exists and is open
-      const review = await this.prisma.review.findUnique({
-        where: { id: reviewId },
-        include: { Manuscript: true },
-      });
+  //     // Validate that the review exists and is open
+  //     const review = await this.prisma.review.findUnique({
+  //       where: { id: reviewId },
+  //       include: { Manuscript: true },
+  //     });
 
-      if (!review) {
-        throw new NotFoundException(`Review with ID ${reviewId} not found`);
-      }
+  //     if (!review) {
+  //       throw new NotFoundException(`Review with ID ${reviewId} not found`);
+  //     }
 
-      // Check if the review is closed
-      if (review.isClosed) {
-        throw new ForbiddenException('Cannot reply to a closed review');
-      }
+  //     // Check if the review is closed
+  //     if (review.isClosed) {
+  //       throw new ForbiddenException('Cannot reply to a closed review');
+  //     }
 
-      // Validate that the review was assigned to this reviewer
-      if (review.reviewerId !== reviewer.id) {
-        throw new ForbiddenException('You are not allowed to reply to this review');
-      }
+  //     // Validate that the review was assigned to this reviewer
+  //     if (review.reviewerId !== reviewer.id) {
+  //       throw new ForbiddenException('You are not allowed to reply to this review');
+  //     }
 
-      // Get the author of the manuscript being reviewed
-      const author = await this.prisma.author.findUnique({
-        where: { id: review.authorId },
-      });
+  //     // Get the author of the manuscript being reviewed
+  //     const author = await this.prisma.author.findUnique({
+  //       where: { id: review.authorId },
+  //     });
 
-      if (!author) {
-        throw new NotFoundException(`Author with ID ${review.authorId} not found`);
-      }
+  //     if (!author) {
+  //       throw new NotFoundException(`Author with ID ${review.authorId} not found`);
+  //     }
 
-      // Create the reply
-      return await this.prisma.reply.create({
-        data: {
-          reviewId,
-          authorId: author.id,
-          subject,
-          contents,
-          uploadFiles,
-          isauthor:false,
-          createdBy: userId, 
-          updatedBy: userId,
-        },
-      });
-    } catch (error) {
-      console.error('Error creating reply:', error);
+  //     // Create the reply
+  //     return await this.prisma.reply.create({
+  //       data: {
+  //         reviewId,
+  //         authorId: author.id,
+  //         subject,
+  //         contents,
+  //         uploadFiles,
+  //         isauthor:false,
+  //         createdBy: userId, 
+  //         updatedBy: userId,
+  //       },
+  //     });
+  //   } catch (error) {
+  //     console.error('Error creating reply:', error);
 
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
-        throw error;
-      }
+  //     if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+  //       throw error;
+  //     }
 
-      throw new InternalServerErrorException('Failed to create reply');
-    }
-  }
+  //     throw new InternalServerErrorException('Failed to create reply');
+  //   }
+  // }
 }

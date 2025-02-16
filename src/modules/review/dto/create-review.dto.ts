@@ -28,3 +28,10 @@ export class CreateReviewDto {
   @IsNotEmpty()
   recommendation: Recommendation;
 }
+
+export class FinalRemarkDto {
+  @ApiProperty({ description: 'Recommendation for the manuscript', enum: Recommendation })
+  @IsNotEmpty()
+  @IsEnum(Recommendation)
+  recommendation: Recommendation;
+}

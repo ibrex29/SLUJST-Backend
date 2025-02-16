@@ -192,39 +192,59 @@ export class AuthorService {
     });
   }
 
-  async getManuscriptCountsForAuthor(userId: string): Promise<Record<string, number>> {
-    const author = await this.prisma.author.findUnique({
-      where: { userId },
-    });
-
-    if (!author) {
-      throw new UnauthorizedException('User is not an author');
+  async getManuscriptCountsForAuthor(userId: string) {
+    try {
+      const author = await this.prisma.author.findUnique({
+        where: { userId },
+      });
+  
+      if (!author) {
+        throw new UnauthorizedException('User is not an author');
+      }
+  
+      const manuscriptCounts = await this.prisma.manuscript.groupBy({
+        by: ['status'],
+        where: { authorId: author.id },
+        _count: { _all: true },
+      });
+  
+      const counts = {
+        submittedCount: 0, 
+        underReviewCount: 0,
+        acceptedCount: 0,
+        rejectedCount: 0,
+        publishedCount: 0,
+      };
+  
+      const totalManuscripts = await this.prisma.manuscript.count({
+        where: { authorId: author.id },
+      });
+  
+      counts.submittedCount = totalManuscripts; 
+  
+      manuscriptCounts.forEach(({ status, _count }) => {
+        switch (status) {
+          case 'UNDER_REVIEW':
+            counts.underReviewCount = _count._all;
+            break;
+          case 'ACCEPTED':
+            counts.acceptedCount = _count._all;
+            break;
+          case 'REJECTED':
+            counts.rejectedCount = _count._all;
+            break;
+          case 'PUBLISHED':
+            counts.publishedCount = _count._all;
+            break;
+        }
+      });
+  
+      return counts;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Failed to fetch manuscript counts: ${error.message}`
+      );
     }
-
-    const [submittedCount, underReviewCount, acceptedCount, rejectedCount, publishedCount] = await Promise.all([
-      this.prisma.manuscript.count({
-        where: { authorId: author.id, status: 'SUBMITTED' },
-      }),
-      this.prisma.manuscript.count({
-        where: { authorId: author.id, status: 'UNDER_REVIEW' },
-      }),
-      this.prisma.manuscript.count({
-        where: { authorId: author.id, status: 'ACCEPTED' },
-      }),
-      this.prisma.manuscript.count({
-        where: { authorId: author.id, status: 'REJECTED' },
-      }),
-      this.prisma.manuscript.count({
-        where: { authorId: author.id, status: 'PUBLISHED' },
-      }),
-    ]);
-
-    return {
-      submittedCount,
-      underReviewCount,
-      acceptedCount,
-      rejectedCount,
-      publishedCount,
-    };
   }
+  
 }

@@ -12,91 +12,53 @@ import { ReviewerDto } from '../user/dtos/grouped-reviewers.dto'
 export class ManuscriptService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async uploadManuscript(
-    createManuscriptDto: CreateManuscriptDto,
-    userId: string
-  ): Promise<Manuscript> {
-    const {
-      title,
-      abstract,
-      keywords,
-      suggestedReviewer,
-      manuscriptLink,
-      proofofPayment,
-      otherDocsLink,
-      author,
-      coAuthors,
-    } = createManuscriptDto;
-  
+  async uploadManuscript(dto: CreateManuscriptDto, userId: string) {
     try {
-      // Check if the user exists and is an author
-      const userWithAuthor = await this.prisma.user.findUnique({
+      // Check if the user exists
+      const user = await this.prisma.user.findUnique({
         where: { id: userId },
         include: { Author: true },
       });
   
-      if (!userWithAuthor?.Author) {
-        throw new BadRequestException('User does not exist or is not an author');
+      if (!user) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
       }
   
-      // Retrieve the author ID
-      const authorId = userWithAuthor.Author.id;
+      if (!user.Author) {
+        throw new NotFoundException(`Author record for user ID ${userId} not found`);
+      }
   
-      // Create the manuscript
-      const manuscript = await this.prisma.manuscript.create({
-        data: {
-          title,
-          abstract,
-          keywords,
-          coAuthor: coAuthors || '',
-          author: author || '',
-          suggestedReviewer,
-          authorId,
-          status: 'SUBMITTED',
-          isPublished: false,
-          createdBy: userId,
-          updatedBy: userId,
-          // Create and link Document records
-          Document: {
-            create: {
-              manuscriptLink,
-              proofofPayment,
-              otherDocsLink,
-            },
+      return await this.prisma.$transaction(async (prisma) => {
+        const manuscript = await prisma.manuscript.create({
+          data: {
+            title: dto.title,
+            abstract: dto.abstract,
+            keywords: dto.keywords,
+            authorName: dto.author || null,
+            coAuthor: dto.coAuthors || null,
+            suggestedReviewer: dto.suggestedReviewer || null,
+            authorId: user.Author.id, // Ensuring valid authorId
+            status: 'SUBMITTED',
+            createdByUserId: userId,
           },
-        },
-        include: {
-          Document: true, // Include Document relationship in the response
-        },
+        });
+  
+        await prisma.document.create({
+          data: {
+            manuscriptLink: dto.manuscriptLink,
+            proofofPayment: dto.proofofPayment,
+            otherDocsLink: dto.otherDocsLink || null,
+            manuscriptId: manuscript.id,
+          },
+        });
+  
+        return manuscript;
       });
-  
-      return manuscript;
-  
     } catch (error) {
-      console.error('Error creating manuscript:', error);
-  
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-  
-      throw new InternalServerErrorException('Failed to create manuscript');
+      throw new InternalServerErrorException(`Failed to upload manuscript: ${error.message}`);
     }
   }
-
-    // New method to get a reviewer with their manuscripts
-  async getReviewerWithManuscripts(reviewerId: string) {
-    // Find the reviewer with their manuscripts
-    const reviewer = await this.prisma.reviewer.findUnique({
-      where: { id: reviewerId },
-      include: { Manuscript: true }   
-      });
-      if (!reviewer) {
-        throw new NotFoundException(`Reviewer with ID ${reviewerId} not found`);
-      }
-      return reviewer;
-}
-
-
+  
 async assignManuscriptToSection(assignManuscriptToSectionDto: AssignManuscriptToSectionDto) {
   const { manuscriptId, sectionId } = assignManuscriptToSectionDto;
 
@@ -134,17 +96,25 @@ async getManuscriptsForSectionEditor(userId: string): Promise<ManuscriptDto[]> {
 
   const sectionId = sectionEditor.sectionId; 
 
-  // Fetch manuscripts belonging to that section
   const manuscripts = await this.prisma.manuscript.findMany({
     where: { sectionId },
     include: {
-      Document: true, // Include all related documents for the manuscript
+      Document: true, 
       Section: true,
-
+      ActionLog: {
+        include: {
+          createdBy: {
+            include: {
+              User: true,
+            },
+          },
+        },
+      },
+      Review:true
     },
   });
 
-  return manuscripts; // Return the entire manuscript objects
+  return manuscripts;
 }
 
 async getReviewersForSectionEditor(userId: string): Promise<ReviewerDto[]> {
@@ -160,11 +130,10 @@ async getReviewersForSectionEditor(userId: string): Promise<ReviewerDto[]> {
 
   const sectionId = sectionEditor.sectionId; 
 
-  // Fetch reviewers belonging to that section
   const reviewers = await this.prisma.reviewer.findMany({
     where: { sectionId },
     include: {
-      User: true, // Include user details if necessary
+      User: true, 
     },
   });
 
@@ -179,69 +148,32 @@ async getReviewersForSectionEditor(userId: string): Promise<ReviewerDto[]> {
       firstName: reviewer.User.firstName,
       lastName: reviewer.User.lastName,
     },
-  })); // Return the reviewer objects with necessary details
+  }));
 }
-
-async assignReviewersToManuscript(assignReviewerDto: AssignReviewerDto): Promise<{ message: string; manuscript: Manuscript }> {
-  const { manuscriptId, reviewerIds, reviewDueDate } = assignReviewerDto;
-
-  // Fetch the manuscript to check its section ID
-  const manuscript = await this.prisma.manuscript.findUnique({
-    where: { id: manuscriptId },
-    include: { Section: true },
-  });
-
-  if (!manuscript) {
-    throw new NotFoundException('Manuscript not found');
-  }
-
-  // Fetch the reviewers and validate they exist and belong to the same section as the manuscript
-  const reviewers = await this.prisma.reviewer.findMany({
-    where: { id: { in: reviewerIds } },
-  });
-
-  if (reviewers.length !== reviewerIds.length) {
-    throw new NotFoundException('One or more reviewers not found');
-  }
-
-  const invalidReviewers = reviewers.filter((reviewer) => reviewer.sectionId !== manuscript.sectionId);
-  if (invalidReviewers.length > 0) {
-    throw new BadRequestException('All reviewers must belong to the same section as the manuscript');
-  }
-
-  // Assign the reviewers to the manuscript and update the status to UNDER_REVIEW
-  const updatedManuscript = await this.prisma.manuscript.update({
-    where: { id: manuscriptId },
-    data: {
-      Reviewers: {
-        connect: reviewerIds.map((id) => ({ id })),
-      },
-      status: 'UNDER_REVIEW',
-      reviewDueDate: reviewDueDate,
-    },
-    include: { Reviewers: true },
-  });
-
-  return {
-    message: 'Reviewers successfully assigned to manuscript',
-    manuscript: updatedManuscript,
-  };
-}
-
 
 async listSubmittedManuscripts(): Promise<Manuscript[]> {
   try {
     return await this.prisma.manuscript.findMany({
       where: { status: 'SUBMITTED' },
       include: {
-        Author: true,
-        Document: true, // Include all related documents for the manuscript
+        Author: true, 
         Reviewers: {
           include: {
-            User: true,
+            reviewer: true, 
           },
         },
-        Section: true,
+        ActionLog: {
+          include: {
+            createdBy: {
+              include: {
+                User: true,
+              },
+            },
+          },
+        },
+        Review:true,
+        Document: true,
+        Section: true, 
       },
     });
   } catch (error) {
@@ -250,73 +182,89 @@ async listSubmittedManuscripts(): Promise<Manuscript[]> {
   }
 }
 
+async getAllAssignedManuscripts(reviewerId: string) {
+  if (!reviewerId) {
+    throw new BadRequestException('Reviewer ID is required.');
+  }
 
-  
-// async getAllAssignedManuscripts(): Promise<Manuscript[]> {
-//   try {
-//     const manuscripts = await this.prisma.manuscript.findMany({
-//       where: { reviewerId: { not: null } },
-//       include: {
-//         Reviewers: true,
-//         Document: true, // Include all related documents for each manuscript
-//       },
-//     });
-//     return manuscripts;
-//   } catch (error) {
-//     console.error('Error getting assigned manuscripts:', error);
-//     throw new InternalServerErrorException('Failed to get assigned manuscripts');
-//   }
-// }
+  try {
+    return await this.prisma.manuscriptReviewer.findMany({
+      where: { reviewerId },
+      include: {
+        manuscript: true
+      },
+    });
+  } catch (error) {
+    throw new InternalServerErrorException('Failed to retrieve assigned manuscripts', error.message);
+  }
+}
 
-
-
-// async getAllUnassignedManuscripts(): Promise<Manuscript[]> {
-//   try {
-//     const manuscripts = await this.prisma.manuscript.findMany({
-//       where: { reviewerId: null },
-//       include: {
-//         Document: true, // Include all related documents for each manuscript
-//       },
-//     });
-//     return manuscripts;
-//   } catch (error) {
-//     console.error('Error getting unassigned manuscripts:', error);
-//     throw new InternalServerErrorException('Failed to get unassigned manuscripts');
-//   }
-// }
-
+async getAllUnassignedManuscripts() {
+  try {
+    return await this.prisma.manuscript.findMany({
+      where: {
+        Reviewers: {
+          none: {}, 
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        assigmentDate: true,
+        reviewDueDate: true,
+        authorName: true,
+        createdAt: true,
+        isPublished: true,
+      },
+    });
+  } catch (error) {
+    throw new InternalServerErrorException('Failed to retrieve unassigned manuscripts', error.message);
+  }
+}
 
 async getManuscriptDetails(manuscriptId: string) {
-
-const manuscript = await this.prisma.manuscript.findUnique({
-  where: { id: manuscriptId },
-  include: {
-    Document:true,
-    Author: true,  
-    Reviewers: {    
+  try {
+    const manuscript = await this.prisma.manuscript.findUnique({
+      where: { id: manuscriptId },
       include: {
-        User: true  
-      }
-    },
-    Review: {      
-      include: {
-        Reviewer: {
+        Document: true,
+        Author: true,
+        Reviewers: {
           include: {
-            User: true  
-          }
-        }
-      }
+            reviewer: true, 
+          },
+        },
+        ActionLog: {
+          include: {
+            createdBy: {
+              include: {
+                User: true,
+              },
+            },
+          },
+        },
+        Review: {
+          include: {
+            Reviewer: {
+              include: {
+                User: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!manuscript) {
+      throw new NotFoundException(`Manuscript with ID ${manuscriptId} not found`);
     }
+
+    return manuscript;
+  } catch (error) {
+    throw new InternalServerErrorException(`Failed to retrieve manuscript details: ${error.message}`);
   }
-});
-
-if (!manuscript) {
-  throw new NotFoundException(`Manuscript with ID ${manuscriptId} not found`);
 }
-
-return manuscript;
-}
-
 
 async getManuscriptsByStatus(status: Status): Promise<{ count: number; manuscripts: Manuscript[] }> {
   const manuscripts = await this.prisma.manuscript.findMany({
@@ -325,26 +273,6 @@ async getManuscriptsByStatus(status: Status): Promise<{ count: number; manuscrip
   const count = manuscripts.length;
   return { count, manuscripts };
 }
-
-
-
-// async countAssignedManuscripts() {
-//   return this.prisma.manuscript.count({
-//     where: {
-//       reviewerId: {
-//         not: null,
-//       },
-//     },
-//   });
-// }
-
-// async countUnassignedManuscripts() {
-//   return this.prisma.manuscript.count({
-//     where: {
-//       reviewerId: null,
-//     },
-//   });
-// }
 
 async countPublishedManuscripts() {
   return this.prisma.manuscript.count({
@@ -366,26 +294,44 @@ async countApprovedManuscript() {
   });
 }
 
+async assignManuscriptToReviewers(dto: AssignReviewerDto) {
+  const { manuscriptId, reviewerIds, reviewDueDate } = dto;
 
-// async getStatistics() {
-//   const [assignedManuscriptCount, unassignedManuscriptCount, publishedManuscriptCount ,submittedManuscriptcount,approvedManuscriptCount] = await Promise.all([
-//     this.countAssignedManuscripts(),
-//     this.countUnassignedManuscripts(),
-//     this.countPublishedManuscripts(),
-//     this.countSubmittedManuscript(),
-//     this.countApprovedManuscript()
-//   ]);
+  const manuscript = await this.prisma.manuscript.findUnique({
+    where: { id: manuscriptId },
+  });
 
-//   return {
-//     assignedManuscripts: assignedManuscriptCount,
-//     unassignedManuscripts: unassignedManuscriptCount,
-//     publishedManuscripts: publishedManuscriptCount,
-//     submittedManuscriptcount :submittedManuscriptcount,
-//     approvedManuscriptCount: approvedManuscriptCount
-//   };
-// }
+  if (!manuscript) {
+    throw new NotFoundException(`Manuscript with ID ${manuscriptId} not found.`);
+  }
 
+  const existingReviewers = await this.prisma.reviewer.findMany({
+    where: { id: { in: reviewerIds } },
+  });
 
+  if (existingReviewers.length !== reviewerIds.length) {
+    throw new BadRequestException('One or more reviewer IDs are invalid.');
+  }
+
+  await this.prisma.$transaction([
+
+    this.prisma.manuscriptReviewer.createMany({
+      data: reviewerIds.map((reviewerId) => ({
+        manuscriptId,
+        reviewerId,
+        dueDate: reviewDueDate || null,
+      })),
+      skipDuplicates: true, 
+    }),
+
+    this.prisma.manuscript.update({
+      where: { id: manuscript.id },
+      data: { status: 'UNDER_REVIEW' },
+    }),
+  ]);
+
+  return { message: 'Reviewers assigned, manuscript status updated to UNDER REVIEW.' };
+}
 
 async getAllPublishedManuscripts() {
   const publishedManuscripts = await this.prisma.publication.findMany({

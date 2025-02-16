@@ -15,18 +15,20 @@ export const VERIFY_SERVICE_SID = 'VERIFY_SERVICE_SID';
 export const TWILIO_DEFAULT_CHANNEL = 'TWILIO_DEFAULT_CHANNEL';
 export const THROTTLE_TTL = 'THROTTLE_TTL';
 export const THROTTLE_LIMIT = 'THROTTLE_LIMIT';
+
+// Mail-related constants
 export const MAIL_HOST = 'MAIL_HOST';
 export const MAIL_USER = 'MAIL_USER';
 export const MAIL_PASSWORD = 'MAIL_PASSWORD';
 export const MAIL_FROM = 'MAIL_FROM';
 export const MAIL_PORT = 'MAIL_PORT';
+export const MAIL_SECURE = 'MAIL_SECURE'; // true for SSL, false for TLS
+export const MAIL_REPLY_TO = 'MAIL_REPLY_TO'; // Reply-to email address
+export const MAIL_SENDER_NAME = 'MAIL_SENDER_NAME'; // Display name of the sender
+export const MAIL_TEMPLATE_DIR = 'MAIL_TEMPLATE_DIR'; // Directory for email templates
+
+// Site-related constants
 export const SITE_URL = 'SITE_URL';
 export const CONTACT_EMAIL = 'CONTACT_EMAIL';
-export const AWS_ACCESS_KEY_ID = 'AWS_ACCESS_KEY_ID';
-export const AWS_ACCESS_SECRET = 'AWS_ACCESS_SECRET';
-export const AWS_S3_BUCKET = 'AWS_S3_BUCKET';
-export const AWS_S3_REGION = 'AWS_S3_REGION';
-export const jwtConstants = {
-    secret: 'yourSecretKey', // Replace 'yourSecretKey' with your actual secret key
-  };
-  
+export const SUPPORT_EMAIL = 'SUPPORT_EMAIL'; // Support email address
+export const NO_REPLY_EMAIL = 'NO_REPLY_EMAIL'; // No-reply email address

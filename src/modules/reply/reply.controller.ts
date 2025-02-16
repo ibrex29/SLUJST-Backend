@@ -43,20 +43,20 @@ export class ReplyController {
     );
   }
 
-  @Post('reply')
-  @ApiOperation({ summary: 'Create a reply to a review' })
-  async createReply(@Request() req, @Body() createReplyDto: CreateReplyDto) {
-    return this.replyService.createReply(req.user?.userId, createReplyDto);
-  }
+  // @Post('reply')
+  // @ApiOperation({ summary: 'Create a reply to a review' })
+  // async createReply(@Request() req, @Body() createReplyDto: CreateReplyDto) {
+  //   return this.replyService.createReply(req.user?.userId, createReplyDto);
+  // }
 
-  @Post(':reviewId/replies')
-  async createReviewerReply(
-    @Request() req,
-    @Body() createReplyDto: CreateReplyDto,
-  ) {
-    return this.replyService.createReviewerReply(
-      req.user?.userId,
-      createReplyDto,
-    );
-  }
+  // @Post(':reviewId/replies')
+  // async createReviewerReply(
+  //   @Request() req,
+  //   @Body() createReplyDto: CreateReplyDto,
+  // ) {
+  //   return this.replyService.createReviewerReply(
+  //     req.user?.userId,
+  //     createReplyDto,
+  //   );
+  // }
 }

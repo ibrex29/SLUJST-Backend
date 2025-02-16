@@ -17,12 +17,13 @@ import {
 
 import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RolesPermissionsService } from 'src/modules/services/roles-permissions.service';
-import { CreateRoleDto } from '../dtos/roles-permissions/create-role.dto';
+import { CreateMultipleRolesDto, CreateRoleDto } from '../dtos/roles-permissions/create-role.dto';
 import { UpdateRoleDto } from '../dtos/roles-permissions/update-role.dto';
 import { CreatePermissionDto } from '../dtos/roles-permissions/create-permission.dto';
 import { UpdatePermissionDto } from '../dtos/roles-permissions/update-permission.dto';
 import { Public } from 'src/common/constants/routes.constant';
 import { Role } from '@prisma/client';
+import { UserType } from '../types/user.type';
 
 @ApiTags('Manage Roles and Permissions')
 @ApiBearerAuth()
@@ -34,27 +35,20 @@ export class RolesPermissionsController {
   ) {}
 
   @Version('1')
-  @Post('roles')
+  @Post('bulk-create')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a single role' })
-  @ApiCreatedResponse({ description: 'The role has been successfully created.' })
+  @ApiOperation({ summary: 'Create multiple roles' })
+  @ApiCreatedResponse({ description: 'Roles have been successfully created.' })
   @ApiBadRequestResponse({ description: 'Invalid data provided.' })
-  @ApiBody({ type: CreateRoleDto })
-  async createRole(
-    @Body() createRoleDto: CreateRoleDto,
-    @Request() req,
-  ): Promise<Role> {
+  @ApiBody({ type: CreateMultipleRolesDto })
+  async createRoles(@Body() createMultipleRolesDto: CreateMultipleRolesDto): Promise<any> {
     try {
-      const userId = req.user.id; // Assuming the user ID is stored in req.user.id
-      return await this.rolesPermissionsService.createRole(
-        createRoleDto.roleName,
-         req.user?.userId);
+      return await this.rolesPermissionsService.createRoles(createMultipleRolesDto.roleList);
     } catch (error) {
-      console.error('Error in createRole controller:', error);
-      throw new HttpException('Could not create role.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new Error(`Error creating roles: ${error.message}`);
     }
   }
-
+  
   @Version('1')
   @Get('roles/:id')
   findRoleById(@Param('id') id: string) {

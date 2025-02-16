@@ -33,12 +33,12 @@ export class PublicationController {
   @ApiOperation({ summary: 'Publish a manuscript' })
   @ApiResponse({ status: 200, description: 'Manuscript published successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid input data or manuscript status not ACCEPTED.' })
-  async publishManuscript(
-    @Request() req,
-    @Body() publishManuscriptDto: PublishManuscriptDto
-  ) {
-    return this.publicationService.publishManuscript(publishManuscriptDto, req.user?.userId);
-  }
+  // async publishManuscript(
+  //   @Request() req,
+  //   @Body() publishManuscriptDto: PublishManuscriptDto
+  // ) {
+  //   return this.publicationService.publishManuscript(publishManuscriptDto, req.user?.userId);
+  // }
 
   @Get('manuscripts/published')
   @Role(UserType.EDITOR_IN_CHIEF, UserType.PRODUCTION_EDITOR, UserType.MANAGING_EDITOR)

@@ -19,51 +19,51 @@ export class PublicationService {
     });
   }
 
-  async publishManuscript(publishManuscriptDto: PublishManuscriptDto, userId: string) {
-    const { manuscriptId, title, abstract, keywords, issue, doi, formattedManuscript } = publishManuscriptDto;
+  // async publishManuscript(publishManuscriptDto: PublishManuscriptDto, userId: string) {
+  //   const { manuscriptId, title, abstract, keywords, issue, doi, formattedManuscript } = publishManuscriptDto;
 
-    if (manuscriptId) {
-      const manuscript = await this.prisma.manuscript.findUnique({
-        where: { id: manuscriptId },
-      });
+  //   if (manuscriptId) {
+  //     const manuscript = await this.prisma.manuscript.findUnique({
+  //       where: { id: manuscriptId },
+  //     });
 
-      if (!manuscript) {
-        throw new BadRequestException('Manuscript not found');
-      }
+  //     if (!manuscript) {
+  //       throw new BadRequestException('Manuscript not found');
+  //     }
 
-      if (manuscript.status !== Status.ACCEPTED) {
-        throw new BadRequestException('Manuscript status must be ACCEPTED by the reviewer to be published');
-      }
+  //     if (manuscript.status !== Status.ACCEPTED) {
+  //       throw new BadRequestException('Manuscript status must be ACCEPTED by the reviewer to be published');
+  //     }
 
-      await this.prisma.manuscript.update({
-        where: { id: manuscriptId },
-        data: {
-          status: Status.PUBLISHED,
-          isPublished: true,
-          updatedAt: new Date(),
-          updatedBy: userId,
-        },
-      });
-    }
+  //     await this.prisma.manuscript.update({
+  //       where: { id: manuscriptId },
+  //       data: {
+  //         status: Status.PUBLISHED,
+  //         isPublished: true,
+  //         updatedAt: new Date(),
+  //         updatedBy: userId,
+  //       },
+  //     });
+  //   }
 
-    await this.prisma.publication.create({
-      data: {
-        title,
-        abstract,
-        keywords,
-        issueId: issue,
-        DOI: doi,
-        userId,
-        formattedManuscript,
-        manuscriptId: manuscriptId || null,
-        createdBy: userId,
-        isActive: true,
-        updatedBy: userId,
-      },
-    });
+  //   await this.prisma.publication.create({
+  //     data: {
+  //       title,
+  //       abstract,
+  //       keywords,
+  //       issueId: issue,
+  //       DOI: doi,
+  //       userId,
+  //       formattedManuscript,
+  //       manuscriptId: manuscriptId || null,
+  //       createdBy: userId,
+  //       isActive: true,
+  //       updatedBy: userId,
+  //     },
+  //   });
 
-    return { message: 'Publication successfully created' };
-  }
+  //   return { message: 'Publication successfully created' };
+  // }
 
   // async getAllPublishedManuscripts() {
   //   return this.prisma.publication.findMany({

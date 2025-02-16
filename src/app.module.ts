@@ -1,5 +1,3 @@
-// src/app.module.ts
-
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -10,7 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule, seconds } from '@nestjs/throttler';
 import { HTTP_MAX_REDIRECTS, HTTP_TIMEOUT, THROTTLE_LIMIT, THROTTLE_TTL } from './common/constants';
 import { HttpModule } from '@nestjs/axios';
-import { CacheConfigModule } from './cache.module'; // Ensure this module is correctly defined
+import { CacheConfigModule } from './cache.module'; 
 import { UserModule } from './modules/user/user.module';
 import { ManuscriptModule } from './modules/manuscript/manuscript.module';
 import { ReviewModule } from './modules/review/review.module';
@@ -40,8 +38,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => [
         {
-          ttl: seconds(configService.get(THROTTLE_TTL) || 10), // default is 10 seconds
-          limit: configService.get(THROTTLE_LIMIT) || 20, // default is 20 requests
+          ttl: seconds(configService.get(THROTTLE_TTL) || 10),
+          limit: configService.get(THROTTLE_LIMIT) || 20, 
         },
       ],
     }),
@@ -65,7 +63,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     SectionModule,
     PublicationModule,
     MailModule,
-    AnalyticsModule
+    AnalyticsModule,
+    MailModule
 
   ],
   controllers: [AppController],
