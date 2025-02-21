@@ -8,10 +8,14 @@ import { PrismaService } from 'prisma/prisma.service';
 import { Recommendation, Reply, Review, Reviewer, Status } from '@prisma/client';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { AcceptRejectManuscriptDto } from './dto/accept-reject-manuscript.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class ReviewService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService
+  ) {}
 
   async findOne(id: string): Promise<Reviewer> {
     const reviewer = await this.prisma.reviewer.findUnique({
@@ -125,17 +129,19 @@ export class ReviewService {
   async createReview(userId: string, createReviewDto: CreateReviewDto) {
     const { manuscriptId, comments, recommendation } = createReviewDto;
     const reviewerId = await this.getReviewerIdForLoggedUser(userId);
-
+  
     const manuscript = await this.prisma.manuscript.findFirst({
-      where: { id: manuscriptId, },
+      where: { id: manuscriptId },
+      include: { Author: { include: { User: true } } },
     });
+  
     if (!manuscript) {
       throw new ForbiddenException(
         `Manuscript with ID ${manuscriptId} is not assigned to this reviewer`,
       );
     }
-
-    return this.prisma.review.create({
+  
+    const review = await this.prisma.review.create({
       data: {
         manuscriptId,
         reviewerId,
@@ -144,10 +150,24 @@ export class ReviewService {
         recommendation,
         authorId: manuscript.authorId,
         isClosed: false,
-        createdByUserId:reviewerId
+        createdByUserId: reviewerId,
       },
     });
+  
+    if (manuscript.Author.User.email) {
+      await this.mailService.sendManuscriptReviewCompletionEmail(
+        manuscript.Author.User.email,
+        manuscript.Author.User.firstName,
+        manuscript.title,
+        'A Reviewer',
+        comments,
+        recommendation
+      );
+    }
+  
+    return review;
   }
+
 
   async getAllReviews(): Promise<Review[]> {
     return this.prisma.review.findMany({

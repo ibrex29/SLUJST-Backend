@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ManuscriptService } from './manuscript.service';
 import { ManuscriptController } from './manuscript.controller';
 import { PrismaService } from 'prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 
 @Module({
   controllers: [ManuscriptController],

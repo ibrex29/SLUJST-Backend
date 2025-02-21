@@ -32,6 +32,8 @@ model User {
   createManuscript Manuscript[] @relation(name: "manuscript_created_by")
   updatedManuscript Manuscript[] @relation(name: "manuscript_updated_by")
   Reply Reply[] @relation(name: "ReplyCreatedBy")
+  createdPublication Publication[] @relation(name: "publication_created_by")
+  updatedPublication Publication[] @relation(name: "publication_updated_by")
 }
 
 model Author {
@@ -87,7 +89,8 @@ model Manuscript {
   authorName        String?
   coAuthor          String?
   status            Status
-  authorId          String
+  rejectionReason   String?
+  authorId          String?
   createdAt         DateTime   @default(now())
   createdByUserId   String?
   updatedByUserId   String?
@@ -99,7 +102,7 @@ model Manuscript {
   assigmentDate     DateTime?  @default(now())
   reviewDueDate     DateTime?
   sectionId         String?   
-  Author            Author     @relation(fields: [authorId], references: [id])
+  Author            Author?     @relation(fields: [authorId], references: [id])
   Review            Review[]
   Publication       Publication[]
   Section           Section?   @relation("SectionManuscripts", fields: [sectionId], references: [id]) 
@@ -197,28 +200,35 @@ model Publication {
   title              String
   abstract           String
   keywords           String
+  Authors            String[]
   createdAt          DateTime    @default(now())
-  createdBy          String
   updatedAt          DateTime    @updatedAt
-  updatedBy          String
   isActive           Boolean    @default(false)
   isPublished        Boolean    @default(false)
   DOI                String
   userId             String?
   formattedManuscript String   
+  downloadTimes       Int     @default(0)
   editor             User?       @relation(fields: [userId], references: [id])
   manuscriptId       String? 
   Manuscript         Manuscript? @relation(fields: [manuscriptId], references: [id])
   issueId            String
   Issue              Issue       @relation(fields: [issueId], references: [id])
+  createdByUserId   String?
+  updatedByUserId   String?
+  createdBy         User?      @relation(fields: [createdByUserId], references: [id], name: "publication_created_by")
+  updatedBy         User?      @relation(fields: [updatedByUserId], references: [id], name: "publication_updated_by")
 
   comments           Comment[]   @relation(name: "publication_comments")
   Reactions Reaction[] @relation(name: "publication_reaction")
+
+  @@index([title, abstract, keywords,Authors])
 }
 
 model Issue {
   id                 String      @id @default(uuid())
   name               String
+  coverImage         String?
   description        String?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
@@ -258,8 +268,8 @@ model Reaction {
   publicationId String
   Publication   Publication @relation(fields: [publicationId], references: [id], name: "publication_reaction")
 
-  userId        String
-  User          User       @relation(fields: [userId], references: [id])
+  userId        String?
+  User          User?       @relation(fields: [userId], references: [id])
 
   type          ReactionType
 

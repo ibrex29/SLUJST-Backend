@@ -9,6 +9,7 @@ import {
   UseGuards,
   Put,
   Param,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,6 +25,7 @@ import { UserType } from '../user/types/user.type';
 import { RolesGuard } from '../auth/guard/role.guard';
 import { UpdateAuthorDto } from './dtos/update-author.dto';
 import { User } from 'src/common/decorators/param-decorator/User.decorator';
+import { FetchManuscriptDTO } from '../manuscript/dto/fetch-manuscript.dto';
 
 @ApiBearerAuth()
 @ApiTags('author')
@@ -43,10 +45,14 @@ export class AuthorController {
 
   @Role(UserType.AUTHOR)
   @Get('submitted-manuscripts')
-  @ApiOperation({ summary: 'Get all manuscripts submitted by logged-in author' })
-  async getSubmittedManuscriptsForLoggedInUser(@User("userId") userId: string) {
-    return this.authorService.getSubmittedManuscriptsForLoggedInUser(userId);
+  @ApiOperation({ summary: 'Get paginated submitted manuscripts by logged-in author' })
+  async getSubmittedManuscriptsForLoggedInUser(
+    @User('userId') userId: string,
+    @Query() query: FetchManuscriptDTO,
+  ) {
+    return this.authorService.getSubmittedManuscriptsForLoggedInUser(userId, query);
   }
+  
 
   @Role(UserType.AUTHOR)
   @Get('status-counts')

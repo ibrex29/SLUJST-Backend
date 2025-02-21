@@ -12,6 +12,9 @@ import { CreateAuthorDto } from './dtos/create-author.dto';
 import * as bcrypt from 'bcrypt';
 import { UserType } from '../user/types/user.type';
 import { UpdateAuthorDto } from './dtos/update-author.dto';
+import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
+import { FetchManuscriptDTO } from '../manuscript/dto/fetch-manuscript.dto';
+// import { QueryMode } from "@prisma/client";
 
 @Injectable()
 export class AuthorService {
@@ -173,23 +176,43 @@ export class AuthorService {
     return manuscripts;
   }
 
-  async getSubmittedManuscriptsForLoggedInUser(userId: string): Promise<Manuscript[]> {
+  async getSubmittedManuscriptsForLoggedInUser(userId: string, query: FetchManuscriptDTO): Promise<{ data: Manuscript[], meta: PaginationMetadataDTO }> {
     const author = await this.prisma.author.findUnique({
       where: { userId },
     });
-
+  
     if (!author) {
       throw new NotFoundException(`Author with User ID ${userId} not found`);
     }
-
-    return this.prisma.manuscript.findMany({
-      where: {
-        authorId: author.id,
-      },
+  
+   const whereCondition: Prisma.ManuscriptWhereInput = {
+      authorId: author.id,
+      status: query.status || undefined,
+      OR: query.search
+        ? [
+            { title: { contains: query.search, mode: "insensitive" } },
+            { abstract: { contains: query.search, mode: "insensitive" } },
+          ]
+        : undefined,
+    };
+    
+  
+    const totalCount = await this.prisma.manuscript.count({ where: whereCondition });
+  
+    const manuscripts = await this.prisma.manuscript.findMany({
+      where: whereCondition,
       include: {
         Document: true,
       },
+      skip: query.skip,
+      take: query.limit,
+      orderBy: { createdAt: query.sortOrder },
     });
+  
+    return {
+      data: manuscripts,
+      meta: new PaginationMetadataDTO({ pageOptionsDTO: query, itemCount: totalCount }),
+    };
   }
 
   async getManuscriptCountsForAuthor(userId: string) {

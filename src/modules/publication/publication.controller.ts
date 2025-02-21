@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post, UseGuards, Param, Delete, Patch, Request } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, Param, Delete, Patch, Request, Query } from '@nestjs/common';
 import { PublicationService } from './publication.service';
-import { Role } from 'src/common/constants/routes.constant';
+import { Public, Role } from 'src/common/constants/routes.constant';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserType } from '../user/types/user.type';
 import { RolesGuard } from '../auth/guard/role.guard';
@@ -11,6 +11,7 @@ import { UpdateVolumeDto } from './dto/update-volume.dto';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto } from './dto/update-issue.dto';
 import { PublishManuscriptDto } from './dto/publish-manuscript.dto';
+import { FetchPublicationDto } from './dto/Fetch-Publication-Dto';
 
 @ApiBearerAuth()
 @ApiTags('publication')
@@ -19,37 +20,56 @@ import { PublishManuscriptDto } from './dto/publish-manuscript.dto';
 export class PublicationController {
   constructor(private readonly publicationService: PublicationService) {}
 
-  @Get('accepted')
-  @Role(UserType.PRODUCTION_EDITOR, UserType.EDITOR_IN_CHIEF, UserType.MANAGING_EDITOR)
-  @ApiOperation({ summary: 'Get all accepted manuscripts' })
-  @ApiResponse({ status: 200, description: 'List of manuscripts accepted and ready for publication.' })
-  @ApiResponse({ status: 404, description: 'No accepted manuscripts found.' })
-  async getAcceptedManuscripts(): Promise<Manuscript[]> {
-    return this.publicationService.getAcceptedManuscripts();
-  }
 
   @Post('publish')
   @Role(UserType.EDITOR_IN_CHIEF, UserType.PRODUCTION_EDITOR, UserType.MANAGING_EDITOR)
   @ApiOperation({ summary: 'Publish a manuscript' })
   @ApiResponse({ status: 200, description: 'Manuscript published successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid input data or manuscript status not ACCEPTED.' })
-  // async publishManuscript(
-  //   @Request() req,
-  //   @Body() publishManuscriptDto: PublishManuscriptDto
-  // ) {
-  //   return this.publicationService.publishManuscript(publishManuscriptDto, req.user?.userId);
-  // }
+  async publishManuscript(
+    @User("userId") userId: string,
+    @Body() publishManuscriptDto: PublishManuscriptDto
+  ) {
+    return this.publicationService.publishManuscript(publishManuscriptDto, userId);
+  }
 
-  @Get('manuscripts/published')
-  @Role(UserType.EDITOR_IN_CHIEF, UserType.PRODUCTION_EDITOR, UserType.MANAGING_EDITOR)
-  @ApiOperation({ summary: 'List of published manuscripts' })
-  @ApiResponse({ status: 200, description: 'Published manuscripts retrieved successfully.' })
-  async getAllPublishedManuscripts() {
-    return this.publicationService.getAllPublishedManuscripts();
+  @Public()
+  @Get('published-manuscript')
+  async fetchPublications(@Query() query: FetchPublicationDto) {
+    return this.publicationService.getPublications(query);
+  }
+
+  @Public()
+  @Get('latest-publication')
+  async getLatestPublications(@Query('limit') take?: string) {
+    return this.publicationService.getLatestPublications(Number(take) || 8);
+  }
+  
+  @Public()
+  @Get('latest-issues')
+  async getLatestIssues(@Query('take') take?: string) {
+    return this.publicationService.getLatestIssues(Number(take) || 8);
+  }
+  
+  @Public()
+  @Get('global-search')
+  async search(@Query() filters: FetchPublicationDto) {
+    return this.publicationService.searchPublications(filters);
+  }
+
+  @Public()
+  @Get(':id')
+  async getPublicationById(@Param('id') id: string) {
+    return this.publicationService.getPublicationById(id);
+  }
+
+  @Public()
+  @Post(':id/download')
+  async incrementDownload(@Param('id') id: string) {
+    return this.publicationService.incrementDownloadTimes(id);
   }
 
   @Post(':publicationId/likes')
-  @Role(UserType.EDITOR_IN_CHIEF)
   @ApiOperation({ summary: 'Like a paper' })
   @ApiResponse({ status: 201, description: 'Paper/article liked successfully.' })
   likeArticle(
@@ -60,7 +80,6 @@ export class PublicationController {
   }
 
   @Post(':publicationId/dislikes')
-  @Role(UserType.EDITOR_IN_CHIEF)
   @ApiOperation({ summary: 'Dislike a paper' })
   @ApiResponse({ status: 201, description: 'Paper/article disliked successfully.' })
   dislikeArticle(
@@ -159,4 +178,5 @@ export class IssueController {
   async deleteIssue(@Param('id') id: string) {
     return this.publicationService.deleteIssue(id);
   }
+
 }

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Manuscript Decision Notification</title>
+    <title>Manuscript Review Update</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -38,23 +38,6 @@
         .content p {
             margin-bottom: 15px;
         }
-        .cta-button {
-            display: block;
-            width: fit-content;
-            margin: 20px auto;
-            background-color: #d4a017;
-            color: white;
-            padding: 12px 20px;
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background 0.3s ease;
-        }
-        .cta-button:hover {
-            background-color: #d4a017;
-        }
         .footer {
             text-align: center;
             font-size: 14px;
@@ -75,24 +58,22 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>Manuscript Decision Notification</h2>
+            <h2>Manuscript Review Process Started</h2>
         </div>
         <div class="content">
             <p>Dear {{authorName}},</p>
-            <p>We have completed the review process for your manuscript submitted to <strong>SLUJST</strong>.</p>
+            <p>We are pleased to inform you that your manuscript has been assigned to reviewers for evaluation.</p>
+
             <p><strong>Manuscript Title:</strong> {{manuscriptTitle}}</p>
-            <p><strong>Decision:</strong> <span style="color: #174ea6; font-weight: bold;">{{decision}}</span></p>
+            {{!-- <p><strong>Assigned Reviewers:</strong> {{reviewerNames}}</p> --}}
 
-            {% if decision == "Accepted" %}
-                <p>Congratulations! Your manuscript has been accepted for publication. Our editorial team will contact you regarding the next steps.</p>
-            {% elif decision == "Revisions Required" %}
-                <p>Your manuscript requires revisions before it can be accepted. Please review the comments provided by our reviewers and submit a revised version by <strong>{{revisionDeadline}}</strong>.</p>
-                <a href="https://slu-jst.vercel.app/author" class="cta-button">Submit Revised Manuscript</a>
-            {% elif decision == "Rejected" %}
-                <p>Unfortunately, after careful consideration, we have decided not to proceed with the publication of your manuscript. We appreciate your submission and encourage you to consider submitting future work to <strong>SLUJST</strong>.</p>
-            {% endif %}
+            {{#if reviewDueDate}}
+                <p><strong>Expected Review Completion Date:</strong> {{reviewDueDate}}</p>
+            {{/if}}
 
-            <p>If you have any questions, please feel free to contact us at <a href="mailto:TEA@slujst.com.ng">TEA@slujst.com.ng</a>.</p>
+            <p>Our editorial team will notify you once the review process is complete.</p>
+            <p>If you have any questions, feel free to contact us at <a href="mailto:TEA@slujst.com.ng">TEA@slujst.com.ng</a>.</p>
+            <p>Thank you for choosing <strong>SLUJST</strong>.</p>
             <p>Best Regards,<br><strong>Editorial Team</strong></p>
         </div>
         <div class="footer">

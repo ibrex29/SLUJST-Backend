@@ -1,11 +1,15 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { PublishManuscriptDto } from './dto/publish-manuscript.dto';
-import { Manuscript, Publication, ReactionType, Status } from '@prisma/client';
+import { Manuscript, Prisma, Publication, ReactionType, Status } from '@prisma/client';
 import { CreateVolumeDto } from './dto/create-volume.dto';
 import { UpdateVolumeDto } from './dto/update-volume.dto';
 import { CreateIssueDto } from './dto/create-issue.dto';
+import { v4 as uuidv4 } from 'uuid';
 import { UpdateIssueDto } from './dto/update-issue.dto';
+import { FetchPublicationDto } from './dto/Fetch-Publication-Dto';
+import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
+import { Order } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class PublicationService {
@@ -19,108 +23,237 @@ export class PublicationService {
     });
   }
 
-  // async publishManuscript(publishManuscriptDto: PublishManuscriptDto, userId: string) {
-  //   const { manuscriptId, title, abstract, keywords, issue, doi, formattedManuscript } = publishManuscriptDto;
+  async publishManuscript(publishManuscriptDto: PublishManuscriptDto, userId: string) {
+    const { manuscriptId, title, abstract, keywords, issue, doi, formattedManuscript } = publishManuscriptDto;
+  
+    let finalManuscriptId = manuscriptId || uuidv4();
+  
+    if (manuscriptId) {
+      const manuscript = await this.prisma.manuscript.findUnique({
+        where: { id: manuscriptId },
+      });
+  
+      if (!manuscript) {
+        throw new BadRequestException('Manuscript not found');
+      }
+  
+      if (manuscript.status !== Status.ACCEPTED) {
+        throw new BadRequestException('Manuscript status must be ACCEPTED by the Editorial Team to be published');
+      }
 
-  //   if (manuscriptId) {
-  //     const manuscript = await this.prisma.manuscript.findUnique({
-  //       where: { id: manuscriptId },
-  //     });
-
-  //     if (!manuscript) {
-  //       throw new BadRequestException('Manuscript not found');
-  //     }
-
-  //     if (manuscript.status !== Status.ACCEPTED) {
-  //       throw new BadRequestException('Manuscript status must be ACCEPTED by the reviewer to be published');
-  //     }
-
-  //     await this.prisma.manuscript.update({
-  //       where: { id: manuscriptId },
-  //       data: {
-  //         status: Status.PUBLISHED,
-  //         isPublished: true,
-  //         updatedAt: new Date(),
-  //         updatedBy: userId,
-  //       },
-  //     });
-  //   }
-
-  //   await this.prisma.publication.create({
-  //     data: {
-  //       title,
-  //       abstract,
-  //       keywords,
-  //       issueId: issue,
-  //       DOI: doi,
-  //       userId,
-  //       formattedManuscript,
-  //       manuscriptId: manuscriptId || null,
-  //       createdBy: userId,
-  //       isActive: true,
-  //       updatedBy: userId,
-  //     },
-  //   });
-
-  //   return { message: 'Publication successfully created' };
-  // }
-
-  // async getAllPublishedManuscripts() {
-  //   return this.prisma.publication.findMany({
-  //     where: {
-  //       isActive: true,
-  //       Manuscript: {
-  //         status: 'PUBLISHED',
-  //       },
-  //     },
-  //     select: {
-  //       id: true,
-  //       title: true,
-  //       abstract: true,
-  //       keywords: true,
-  //       DOI: true,
-  //       userId: true,
-  //       formattedManuscript: true,
-  //       manuscriptId: true,
-  //       Manuscript: {
-  //         select: {
-  //           id: true,
-  //           title: true,
-  //           status: true,
-  //         },
-  //       },
-  //       Issue: {
-  //         select: {
-  //           id: true,
-  //           name: true,
-  //           description: true,
-  //           volumeId: true,
-  //           Volume: {
-  //             select: {
-  //               id: true,
-  //               name: true,
-  //               description: true,
-  //             },
-  //           },
-  //         },
-  //       },
-  //     },
-  //   });
-  // }
-
-  async getAllPublishedManuscripts(): Promise<Publication[]> {
-    return this.prisma.publication.findMany({
-      where: {
-        // isPublished: true,  // Fetch only published manuscripts
-        isActive: true,     // Optional: If you want to filter only active manuscripts
-      },
-      include: {
-        Manuscript: true,   // Include the manuscript relation if needed
-        Issue: true,        // Include issue if needed
+      const issueExists = await this.prisma.issue.findUnique({
+        where: { id: issue },
+      });
+    
+      if (!issueExists) {
+        throw new BadRequestException('Issue not found');
+      }
+  
+      await this.prisma.manuscript.update({
+        where: { id: manuscriptId },
+        data: {
+          status: Status.PUBLISHED,
+          isPublished: true
+        },
+      });
+    } else {
+      // Create a new manuscript record if not provided
+      await this.prisma.manuscript.create({
+        data: {
+          id: finalManuscriptId,
+          title,
+          abstract,
+          keywords,
+          status: Status.PUBLISHED,
+          isPublished: true,
+        },
+      });
+    }
+  
+    await this.prisma.publication.create({
+      data: {
+        title,
+        abstract,
+        keywords,
+        issueId: issue,
+        DOI: doi,
+        userId,
+        formattedManuscript,
+        manuscriptId: finalManuscriptId,
+        createdByUserId: userId,
+        isActive: true,
       },
     });
+  
+    return { message: 'Publication successfully created' };
   }
 
+  async getPublications(filters: FetchPublicationDto) {
+    const whereCondition: Prisma.PublicationWhereInput = {
+      isActive: filters.isActive ?? undefined,
+      issueId: filters.issueId ?? undefined,
+      Issue: filters.volumeId ? { volumeId: filters.volumeId } : undefined, 
+      OR: filters.search
+        ? [
+            { title: { contains: filters.search, mode: 'insensitive' } },
+            { abstract: { contains: filters.search, mode: 'insensitive' } },
+            { keywords: { contains: filters.search, mode: 'insensitive' } },
+          ]
+        : undefined,
+    };
+  
+    const itemCount = await this.prisma.publication.count({ where: whereCondition });
+  
+    const publications = await this.prisma.publication.findMany({
+      where: whereCondition,
+      skip: filters.skip,
+      take: filters.limit,
+      orderBy: { createdAt: filters.sortOrder === Order.DESC ? 'desc' : 'asc' },
+      include: {
+        Issue: {
+          select: {
+            name: true,
+            Volume: { select: { name: true } },
+          },
+        },
+        comments: true,
+        Reactions: {
+          select: {
+            type: true,
+          },
+        },
+      },
+    });
+  
+    const publicationsWithReactions = publications.map((publication) => {
+      const reactionCounts = publication.Reactions.reduce((acc, reaction) => {
+        acc[reaction.type] = (acc[reaction.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+  
+      return {
+        ...publication,
+        Reactions: reactionCounts,
+      };
+    });
+  
+    const paginationMetadata = new PaginationMetadataDTO({
+      pageOptionsDTO: filters,
+      itemCount,
+    });
+  
+    return {
+      data: publicationsWithReactions,
+      meta: paginationMetadata,
+    };
+  }
+
+  async getLatestPublications(take: number = 8) {
+    const publications = await this.prisma.publication.findMany({
+      where: { isActive: true},
+      take,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        Issue: {
+          select: {
+            name: true,
+            Volume: { select: { name: true } },
+          },
+        },
+        Reactions: {
+          select: {
+            type: true,
+          },
+        },
+      },
+    });
+  
+    const publicationsWithReactions = publications.map((publication) => {
+      const reactionCounts = publication.Reactions.reduce((acc, reaction) => {
+        acc[reaction.type] = (acc[reaction.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+  
+      return {
+        ...publication,
+        Reactions: reactionCounts,
+      };
+    });
+  
+    return { data: publicationsWithReactions };
+  }  
+
+  async getLatestIssues(take: number = 8) {
+    return await this.prisma.issue.findMany({
+      take,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        Volume: {
+          select: { name: true },
+        },
+      },
+    });
+  }  
+  
+  async getPublicationById(id: string) {
+    const publication = await this.prisma.publication.findUnique({
+      where: { id },
+      include: {
+        Issue: {
+          select: {
+            name: true,
+            Volume: {
+              select: { name: true },
+            },
+          },
+        },
+        comments: true,
+        Reactions: {
+          select: {
+            type: true,
+          },
+        },
+      },
+    });
+  
+    if (!publication) {
+      throw new NotFoundException(`Publication with ID ${id} not found`);
+    }
+
+    const reactionCounts = publication.Reactions.reduce((acc, reaction) => {
+      acc[reaction.type] = (acc[reaction.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  
+    return {
+      ...publication,
+      Reactions: reactionCounts, 
+    };
+  }
+
+  async searchPublications(filters: FetchPublicationDto) {
+    const { search, skip, limit } = filters;
+
+    const publications = await this.prisma.$queryRaw<
+      any[]
+    >`
+      SELECT *, 
+        ts_rank_cd(
+          to_tsvector('english', title || ' ' || abstract || ' ' || keywords), 
+          plainto_tsquery('english', ${search})
+        ) AS rank
+      FROM "Publication"
+      WHERE to_tsvector('english', title || ' ' || abstract || ' ' || keywords)
+      @@ plainto_tsquery('english', ${search})
+      ORDER BY rank DESC
+      LIMIT ${limit} OFFSET ${skip};
+    `;
+
+    return { data: publications };
+  }
 
   async addReaction(publicationId: string, reactionType: ReactionType, userId: string) {
     await this.ensurePublicationExists(publicationId);
@@ -248,4 +381,30 @@ export class PublicationService {
       where: { id },
     });
   }
-}
+  
+    async incrementDownloadTimes(publicationId: string): Promise<{ message: string; downloadTimes: number }> {
+      const publication = await this.prisma.publication.findUnique({
+        where: { id: publicationId },
+      });
+  
+      if (!publication) {
+        throw new NotFoundException('Publication not found');
+      }
+  
+      const updatedPublication = await this.prisma.publication.update({
+        where: { id: publicationId },
+        data: {
+          downloadTimes: { increment: 1 },
+        },
+        select: {
+          downloadTimes: true,
+        },
+      });
+  
+      return {
+        message: 'Download count updated successfully',
+        downloadTimes: updatedPublication.downloadTimes,
+      };
+    }
+  }
+  

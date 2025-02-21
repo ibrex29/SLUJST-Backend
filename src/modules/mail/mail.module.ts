@@ -13,7 +13,7 @@ import {
 import { MailService } from './mail.service';
 import { MailController } from './mail.controller';
 
-@Global()
+@Global() 
 @Module({
   imports: [
     MailerModule.forRootAsync({
@@ -22,7 +22,7 @@ import { MailController } from './mail.controller';
         transport: {
           host: configService.getOrThrow(MAIL_HOST), // SMTP Host
           port: configService.getOrThrow<number>(MAIL_PORT), // SMTP Port
-          secure: false, // 🔴 Ensure this is FALSE for Mailtrap
+          secure: true, // 🔴 Ensure this is FALSE for Mailtrap
           auth: {
             user: configService.getOrThrow(MAIL_USER), // SMTP Username
             pass: configService.getOrThrow(MAIL_PASSWORD), // SMTP Password

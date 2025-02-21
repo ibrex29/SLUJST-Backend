@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { VersioningType } from '@nestjs/common';
+import { ClassSerializerInterceptor, VersioningType } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import * as compression from 'compression';
@@ -30,10 +30,10 @@ async function bootstrap() {
     }),
   );
 
-  // // Global interceptor for class serialization
-  // app.useGlobalInterceptors(
-  //   new ClassSerializerInterceptor(app.get('Reflector')),
-  // );
+  // Global interceptor for class serialization
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(app.get('Reflector')),
+  );
 
   // Swagger configuration
   const config = new DocumentBuilder()
@@ -53,8 +53,49 @@ async function bootstrap() {
 
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document); // Set up the Swagger module
-
+  SwaggerModule.setup('docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+    // customJs: [
+    //   `
+    //   window.onload = function() {
+    //     const originalFetch = window.fetch;
+    //     window.fetch = async function(url, options) {
+    //       const response = await originalFetch(url, options);
+    //       if (url.includes('/api/v1/auth/login/email') && response.ok) {
+    //         const data = await response.json();
+    //         if (data.accessToken) {
+    //           const authString = 'Bearer ' + data.accessToken;
+    //           localStorage.setItem('swagger_token', authString);
+              
+    //           // Ensure Swagger UI is available before calling preauthorizeApiKey
+    //           const interval = setInterval(() => {
+    //             if (window.ui) {
+    //               window.ui.preauthorizeApiKey('Bearer', authString);
+    //               clearInterval(interval);
+    //             }
+    //           }, 100);
+    //         }
+    //       }
+    //       return response;
+    //     };
+  
+    //     // Load stored token on Swagger reload
+    //     const storedToken = localStorage.getItem('swagger_token');
+    //     if (storedToken) {
+    //       const interval = setInterval(() => {
+    //         if (window.ui) {
+    //           window.ui.preauthorizeApiKey('Bearer', storedToken);
+    //           clearInterval(interval);
+    //         }
+    //       }, 100);
+    //     }
+    //   };
+    //   `,
+    // ],
+  });
+  
   const port = process.env.PORT || 4000;
   // app.useGlobalGuards(new JwtAuthGuard(Reflect));
   await app.listen(port); 
