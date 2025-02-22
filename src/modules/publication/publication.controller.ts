@@ -20,9 +20,9 @@ import { FetchPublicationDto } from './dto/Fetch-Publication-Dto';
 export class PublicationController {
   constructor(private readonly publicationService: PublicationService) {}
 
-
+  @Public()
   @Post('publish')
-  @Role(UserType.EDITOR_IN_CHIEF, UserType.PRODUCTION_EDITOR, UserType.MANAGING_EDITOR)
+  // @Role(UserType.EDITOR_IN_CHIEF, UserType.PRODUCTION_EDITOR, UserType.MANAGING_EDITOR)
   @ApiOperation({ summary: 'Publish a manuscript' })
   @ApiResponse({ status: 200, description: 'Manuscript published successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid input data or manuscript status not ACCEPTED.' })
@@ -95,21 +95,21 @@ export class PublicationController {
 @Controller({ path: 'volumes', version: '1' })
 export class VolumeController {
   constructor(private readonly publicationService: PublicationService) {}
-
+  @Public()
   @Post()
   @ApiOperation({ summary: 'Create a new volume' })
   @ApiResponse({ status: 201, description: 'Volume created successfully.' })
   async createVolume(@Body() createVolumeDto: CreateVolumeDto) {
     return this.publicationService.createVolume(createVolumeDto);
   }
-
+  @Public()
   @Get()
   @ApiOperation({ summary: 'Get all volumes' })
   @ApiResponse({ status: 200, description: 'List of all volumes retrieved successfully.' })
   async getAllVolumes() {
     return this.publicationService.getAllVolumes();
   }
-
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get a volume by ID' })
   @ApiResponse({ status: 200, description: 'Volume details retrieved successfully.' })
@@ -148,6 +148,7 @@ export class IssueController {
     return this.publicationService.createIssue(createIssueDto);
   }
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'Get all issues' })
   @ApiResponse({ status: 200, description: 'List of all issues retrieved successfully.' })
@@ -155,6 +156,7 @@ export class IssueController {
     return this.publicationService.getAllIssues();
   }
 
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get an issue by ID' })
   @ApiResponse({ status: 200, description: 'Issue details retrieved successfully.' })

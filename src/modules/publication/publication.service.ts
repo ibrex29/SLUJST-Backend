@@ -24,7 +24,7 @@ export class PublicationService {
   }
 
   async publishManuscript(publishManuscriptDto: PublishManuscriptDto, userId: string) {
-    const { manuscriptId, title, abstract, keywords, issue, doi, formattedManuscript } = publishManuscriptDto;
+    const { manuscriptId, title, abstract, authors, keywords, issue, doi, formattedManuscript } = publishManuscriptDto;
   
     let finalManuscriptId = manuscriptId || uuidv4();
   
@@ -75,6 +75,7 @@ export class PublicationService {
         title,
         abstract,
         keywords,
+        Authors:{ set: authors },
         issueId: issue,
         DOI: doi,
         userId,

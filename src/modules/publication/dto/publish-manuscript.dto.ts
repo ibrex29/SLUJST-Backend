@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsArray, ArrayNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PublishManuscriptDto {
@@ -26,6 +26,16 @@ export class PublishManuscriptDto {
   @IsNotEmpty()
   @IsString()
   abstract: string;
+
+  @ApiProperty({
+    example: ['John Doe', 'Jane Smith'],
+    description: 'The list of authors of the publication',
+    type: [String],
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  authors: string[];
 
   @ApiProperty({
     example: 'AI, society, technology, future',
@@ -59,3 +69,4 @@ export class PublishManuscriptDto {
   @IsString()
   formattedManuscript: string;
 }
+
