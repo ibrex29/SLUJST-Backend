@@ -63,9 +63,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     SectionModule,
     PublicationModule,
     MailModule,
-    AnalyticsModule,
-    MailModule
-
+    AnalyticsModule
   ],
   controllers: [AppController],
   providers: [AppService],

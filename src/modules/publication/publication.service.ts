@@ -237,25 +237,26 @@ export class PublicationService {
 
   async searchPublications(filters: FetchPublicationDto) {
     const { search, skip, limit } = filters;
-
-    const publications = await this.prisma.$queryRaw<
-      any[]
-    >`
+  
+    const publications = await this.prisma.$queryRaw<any[]>`
       SELECT *, 
         ts_rank_cd(
-          to_tsvector('english', title || ' ' || abstract || ' ' || keywords), 
-          plainto_tsquery('english', ${search})
+          to_tsvector('english', lower(title || ' ' || abstract || ' ' || keywords)), 
+          plainto_tsquery('english', lower(${search}))
         ) AS rank
       FROM "Publication"
-      WHERE to_tsvector('english', title || ' ' || abstract || ' ' || keywords)
-      @@ plainto_tsquery('english', ${search})
+      WHERE to_tsvector('english', lower(title || ' ' || abstract || ' ' || keywords))
+      @@ plainto_tsquery('english', lower(${search}))
+      OR lower(title) LIKE '%' || lower(${search}) || '%'
+      OR lower(abstract) LIKE '%' || lower(${search}) || '%'
+      OR lower(keywords) LIKE '%' || lower(${search}) || '%'
       ORDER BY rank DESC
       LIMIT ${limit} OFFSET ${skip};
     `;
-
+  
     return { data: publications };
   }
-
+  
   async addReaction(publicationId: string, reactionType: ReactionType, userId: string) {
     await this.ensurePublicationExists(publicationId);
 

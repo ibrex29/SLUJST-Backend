@@ -1,11 +1,10 @@
 import {
   ForbiddenException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { Recommendation, Reply, Review, Reviewer, Status } from '@prisma/client';
+import { Recommendation, Reply, Review, Reviewer } from '@prisma/client';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { AcceptRejectManuscriptDto } from './dto/accept-reject-manuscript.dto';
 import { MailService } from '../mail/mail.service';
