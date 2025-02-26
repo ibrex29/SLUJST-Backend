@@ -12,6 +12,7 @@ import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto } from './dto/update-issue.dto';
 import { PublishManuscriptDto } from './dto/publish-manuscript.dto';
 import { FetchPublicationDto } from './dto/Fetch-Publication-Dto';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiBearerAuth()
 @ApiTags('publication')

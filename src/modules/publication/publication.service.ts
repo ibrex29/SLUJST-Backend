@@ -86,7 +86,7 @@ export class PublicationService {
       },
     });
   
-    return { message: 'Publication successfully created' };
+    return { message: 'Manuscript published successfully.' };
   }
 
   async getPublications(filters: FetchPublicationDto) {
