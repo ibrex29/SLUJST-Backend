@@ -95,10 +95,15 @@ async function bootstrap() {
     //   `,
     // ],
   });
+
+  const port = process.env.PORT || 2087;
+  const serverAddress = 'https://209.74.77.150'; 
   
-  const port = process.env.PORT || 4000;
-  // app.useGlobalGuards(new JwtAuthGuard(Reflect));
-  await app.listen(port); 
-}
+  await app.listen(port);
+  
+  // Log the complete URL
+  const url = `${serverAddress}:${port}`;
+  console.log(`Server is running at ${url}`);
+  
 
 bootstrap();
