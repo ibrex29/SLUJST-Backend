@@ -56,7 +56,7 @@ export class RolesPermissionsController {
   }
 
   @Version('1')
-  @UseInterceptors(ClassSerializerInterceptor) // serialize response from endpoint
+  @UseInterceptors(ClassSerializerInterceptor) 
   @Get('roles')
   listRoles() {
     return this.rolesPermissionsService.findRoles();
