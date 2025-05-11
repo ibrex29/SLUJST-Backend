@@ -55,7 +55,7 @@ async function bootstrap() {
   });
   
   const port = process.env.PORT || 2087;
-  const serverAddress = 'https://209.74.77.150'; 
+  const serverAddress = 'http://209.74.77.150'; 
   
   await app.listen(port);
   
