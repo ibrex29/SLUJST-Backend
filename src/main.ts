@@ -97,6 +97,7 @@ async function bootstrap() {
   });
   
   const port = process.env.PORT || 4000;
+  console.log(`Server is running on port ${port}`);
   // app.useGlobalGuards(new JwtAuthGuard(Reflect));
   await app.listen(port); 
 }
