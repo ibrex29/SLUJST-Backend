@@ -21,9 +21,9 @@ import { Throttle } from '@nestjs/throttler';
 export class PublicationController {
   constructor(private readonly publicationService: PublicationService) {}
 
-  @Public()
+
   @Post('publish')
-  // @Role(UserType.EDITOR_IN_CHIEF, UserType.PRODUCTION_EDITOR, UserType.MANAGING_EDITOR)
+  @Role(UserType.EDITOR_IN_CHIEF, UserType.PRODUCTION_EDITOR, UserType.MANAGING_EDITOR)
   @ApiOperation({ summary: 'Publish a manuscript' })
   @ApiResponse({ status: 200, description: 'Manuscript published successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid input data or manuscript status not ACCEPTED.' })
