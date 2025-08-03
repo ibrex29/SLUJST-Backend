@@ -1,8 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ClassSerializerInterceptor, VersioningType } from '@nestjs/common';
-import { ValidationPipe } from '@nestjs/common';
+import { ClassSerializerInterceptor, VersioningType, ValidationPipe } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import * as compression from 'compression';
 
@@ -35,8 +34,7 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Manuscript Management API')
     .setDescription(
-      'This API facilitates the management of manuscripts, allowing users to perform various operations such as submission, review, and publication. Key features include:\n' +
-      '\n' +
+      'This API facilitates the management of manuscripts, allowing users to perform various operations such as submission, review, and publication. Key features include:\n\n' +
       '1. **User Authentication:** Secure access to the system using bearer tokens.\n' +
       '2. **Manuscript Submission:** Allow authors to submit manuscripts for review.\n' +
       '3. **Review Assignment:** Assign reviewers to submitted manuscripts.\n' +
@@ -53,14 +51,12 @@ async function bootstrap() {
       persistAuthorization: true,
     },
   });
-  
+
   const port = process.env.PORT || 2087;
-  const serverAddress = 'http://209.74.77.150'; 
-  
   await app.listen(port, '0.0.0.0');
-  
-  const url = `${serverAddress}:${port}`;
-  console.log(`Server is running at ${url}`);
+
+  console.log(`✅ Server is running at http://localhost:${port}`);
+  console.log(`📘 Swagger docs available at http://localhost:${port}/docs`);
 }
 
 bootstrap();
