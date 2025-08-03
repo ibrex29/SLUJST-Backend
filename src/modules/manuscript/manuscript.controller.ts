@@ -17,7 +17,7 @@ import { RejectManuscriptDto } from './dto/update-manuscript.dto';
 
 @ApiTags('manuscripts')
 @ApiBearerAuth()
-@Controller({ path: 'authmanuscriptsor', version: '1' })
+@Controller({ path: 'manuscripts', version: '1' })
 @UseGuards(RolesGuard)
 export class ManuscriptController {
   constructor(private readonly manuscriptService: ManuscriptService) {}
