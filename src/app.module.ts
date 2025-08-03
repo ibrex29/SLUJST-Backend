@@ -19,6 +19,7 @@ import { SectionModule } from './modules/section/section.module';
 import { PublicationModule } from './modules/publication/publication.module';
 import { MailModule } from './modules/mail/mail.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -63,7 +64,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     SectionModule,
     PublicationModule,
     MailModule,
-    AnalyticsModule
+    AnalyticsModule,
+    UploadModule
   ],
   controllers: [AppController],
   providers: [AppService],

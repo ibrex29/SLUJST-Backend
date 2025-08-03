@@ -1,9 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ClassSerializerInterceptor, VersioningType, ValidationPipe } from '@nestjs/common';
-import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
+
 import * as compression from 'compression';
+import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { ValidationPipe, ClassSerializerInterceptor, VersioningType } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 const corsOptions: CorsOptions = {
   origin: true,
@@ -12,7 +15,7 @@ const corsOptions: CorsOptions = {
 };
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.use(compression());
   app.enableCors(corsOptions);
@@ -33,14 +36,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Manuscript Management API')
-    .setDescription(
-      'This API facilitates the management of manuscripts, allowing users to perform various operations such as submission, review, and publication. Key features include:\n\n' +
-      '1. **User Authentication:** Secure access to the system using bearer tokens.\n' +
-      '2. **Manuscript Submission:** Allow authors to submit manuscripts for review.\n' +
-      '3. **Review Assignment:** Assign reviewers to submitted manuscripts.\n' +
-      '4. **Feedback Provision:** Enable reviewers to provide feedback on manuscripts.\n' +
-      '5. **Publication Tracking:** Track the status of manuscripts from submission to publication.\n'
-    )
+    .setDescription('API for managing manuscripts, reviews, and user interactions.')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
@@ -52,11 +48,17 @@ async function bootstrap() {
     },
   });
 
-  const port = process.env.PORT || 2087;
+  // ✅ THIS IS THE KEY PART
+  app.useStaticAssets(join(__dirname, '..', 'assets'), {
+    prefix: '/assets/',
+  });
+
+  const port = process.env.PORT || 5000;
   await app.listen(port, '0.0.0.0');
 
-  console.log(`✅ Server is running at http://localhost:${port}`);
-  console.log(`📘 Swagger docs available at http://localhost:${port}/docs`);
+  console.log(`✅ Server running at http://localhost:${port}`);
+  console.log(`📘 Swagger at http://localhost:${port}/docs`);
+  console.log(`📂 Serving static files from ${join(__dirname, '..', 'assets')}`);
 }
 
 bootstrap();

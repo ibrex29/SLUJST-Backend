@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, InternalServerErrorException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateManuscriptDto } from './dto/create-manuscript.dto';
 import { Manuscript, Status } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
@@ -7,7 +7,6 @@ import { AssignManuscriptToSectionDto } from './dto/assign-manuscript-to-section
 import { ManuscriptDto } from './dto/manuscript.dto';
 import { ReviewerDto } from '../user/dtos/grouped-reviewers.dto'
 import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
-import { PaginationQueryDTO } from 'src/common/dto/pagination-query.dto';
 import { FetchManuscriptDTO } from './dto/fetch-manuscript.dto';
 import { MailService } from '../mail/mail.service';
 
@@ -16,7 +15,8 @@ import { MailService } from '../mail/mail.service';
 export class ManuscriptService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly mailService: MailService,) {}
+     private readonly mailService: MailService
+   ) {}
 
     async uploadManuscript(dto: CreateManuscriptDto, userId: string) {
       try {
@@ -58,16 +58,16 @@ export class ManuscriptService {
             },
           });
   
-          await this.mailService.sendMail({
-            to: user.email,
-            subject: 'Manuscript Submission Confirmation',
-            template: 'author-submission_confirmation', 
-            context: {
-              authorName: user.firstName,
-              manuscriptTitle: manuscript.title,
-              year: new Date().getFullYear(),
-            },
-          });
+          // await this.mailService.sendMail({
+          //   to: user.email,
+          //   subject: 'Manuscript Submission Confirmation',
+          //   template: 'author-submission_confirmation', 
+          //   context: {
+          //     authorName: user.firstName,
+          //     manuscriptTitle: manuscript.title,
+          //     year: new Date().getFullYear(),
+          //   },
+          // });
   
           return manuscript;
         });
@@ -446,24 +446,24 @@ async assignManuscriptToReviewers(dto: AssignReviewerDto) {
   ]);
   const formattedDueDate = reviewDueDate ? new Date(reviewDueDate).toISOString().split('T')[0] : undefined;
 
-  for (const reviewer of reviewers) {
-    await this.mailService.sendManuscriptReviewInvitationEmail(
-      reviewer.User.email,
-      reviewer.User.firstName,
-      manuscript.title,
-      formattedDueDate,
-    );
-  }
+  // for (const reviewer of reviewers) {
+  //   await this.mailService.sendManuscriptReviewInvitationEmail(
+  //     reviewer.User.email,
+  //     reviewer.User.firstName,
+  //     manuscript.title,
+  //     formattedDueDate,
+  //   );
+  // }
 
-  if (manuscript.Author?.User) {
-    await this.mailService.sendManuscriptAuthorNotificationEmail(
-      manuscript.Author.User.email,
-      manuscript.Author.User.firstName,
-      manuscript.title,
-      // reviewers.map((r) => r.User.firstName).join(', '), // List of reviewers
-      formattedDueDate,
-    );
-  }
+  // if (manuscript.Author?.User) {
+  //   await this.mailService.sendManuscriptAuthorNotificationEmail(
+  //     manuscript.Author.User.email,
+  //     manuscript.Author.User.firstName,
+  //     manuscript.title,
+  //     // reviewers.map((r) => r.User.firstName).join(', '), // List of reviewers
+  //     formattedDueDate,
+  //   );
+  // }
 
   return { message: 'Reviewers assigned, manuscript status updated to UNDER REVIEW.' };
 }
@@ -503,12 +503,12 @@ async acceptManuscript(manuscriptId: string, userId: string) {
 
   const { email, firstName } = manuscript.Author.User;
 
-  await this.mailService.sendManuscriptDecisionEmail(
-    email,
-    firstName,
-    manuscript.title,
-    'Accepted'
-  );
+  // await this.mailService.sendManuscriptDecisionEmail(
+  //   email,
+  //   firstName,
+  //   manuscript.title,
+  //   'Accepted'
+  // );
 
   return manuscript;
 }
@@ -527,13 +527,13 @@ async rejectManuscript(manuscriptId: string, userId: string, rejectionReason: st
 
   const { email, firstName } = manuscript.Author.User;
 
-  await this.mailService.sendManuscriptDecisionEmail(
-    email,
-    firstName,
-    manuscript.title,
-    'Rejected',
-    rejectionReason
-  );
+  // await this.mailService.sendManuscriptDecisionEmail(
+  //   email,
+  //   firstName,
+  //   manuscript.title,
+  //   'Rejected',
+  //   rejectionReason
+  // );
 
 }
 }
