@@ -80,7 +80,8 @@ CREATE TABLE "Manuscript" (
     "authorName" TEXT,
     "coAuthor" TEXT,
     "status" "Status" NOT NULL,
-    "authorId" TEXT NOT NULL,
+    "rejectionReason" TEXT,
+    "authorId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdByUserId" TEXT,
     "updatedByUserId" TEXT,
@@ -168,17 +169,19 @@ CREATE TABLE "Publication" (
     "title" TEXT NOT NULL,
     "abstract" TEXT NOT NULL,
     "keywords" TEXT NOT NULL,
+    "Authors" TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdBy" TEXT NOT NULL,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "updatedBy" TEXT NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT false,
     "isPublished" BOOLEAN NOT NULL DEFAULT false,
     "DOI" TEXT NOT NULL,
     "userId" TEXT,
     "formattedManuscript" TEXT NOT NULL,
+    "downloadTimes" INTEGER NOT NULL DEFAULT 0,
     "manuscriptId" TEXT,
     "issueId" TEXT NOT NULL,
+    "createdByUserId" TEXT,
+    "updatedByUserId" TEXT,
 
     CONSTRAINT "Publication_pkey" PRIMARY KEY ("id")
 );
@@ -187,6 +190,7 @@ CREATE TABLE "Publication" (
 CREATE TABLE "Issue" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "coverImage" TEXT,
     "description" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -225,7 +229,7 @@ CREATE TABLE "Reaction" (
     "id" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "publicationId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "userId" TEXT,
     "type" "ReactionType" NOT NULL,
 
     CONSTRAINT "Reaction_pkey" PRIMARY KEY ("id")
@@ -313,6 +317,9 @@ CREATE INDEX "Review_reviewerId_idx" ON "Review"("reviewerId");
 CREATE INDEX "Review_authorId_idx" ON "Review"("authorId");
 
 -- CreateIndex
+CREATE INDEX "Publication_title_abstract_keywords_Authors_idx" ON "Publication"("title", "abstract", "keywords", "Authors");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Reaction_publicationId_userId_key" ON "Reaction"("publicationId", "userId");
 
 -- CreateIndex
@@ -355,7 +362,7 @@ ALTER TABLE "Manuscript" ADD CONSTRAINT "Manuscript_createdByUserId_fkey" FOREIG
 ALTER TABLE "Manuscript" ADD CONSTRAINT "Manuscript_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Manuscript" ADD CONSTRAINT "Manuscript_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "Author"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Manuscript" ADD CONSTRAINT "Manuscript_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "Author"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Manuscript" ADD CONSTRAINT "Manuscript_sectionId_fkey" FOREIGN KEY ("sectionId") REFERENCES "Section"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -406,6 +413,12 @@ ALTER TABLE "Publication" ADD CONSTRAINT "Publication_manuscriptId_fkey" FOREIGN
 ALTER TABLE "Publication" ADD CONSTRAINT "Publication_issueId_fkey" FOREIGN KEY ("issueId") REFERENCES "Issue"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Publication" ADD CONSTRAINT "Publication_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Publication" ADD CONSTRAINT "Publication_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Issue" ADD CONSTRAINT "Issue_volumeId_fkey" FOREIGN KEY ("volumeId") REFERENCES "Volume"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -421,7 +434,7 @@ ALTER TABLE "Comment" ADD CONSTRAINT "Comment_updatedByUserId_fkey" FOREIGN KEY 
 ALTER TABLE "Reaction" ADD CONSTRAINT "Reaction_publicationId_fkey" FOREIGN KEY ("publicationId") REFERENCES "Publication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Reaction" ADD CONSTRAINT "Reaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Reaction" ADD CONSTRAINT "Reaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_RolePermissions" ADD CONSTRAINT "_RolePermissions_A_fkey" FOREIGN KEY ("A") REFERENCES "Permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
