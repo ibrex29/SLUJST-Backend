@@ -20,7 +20,7 @@ import { Request } from 'express';
 import { Public } from 'src/common/constants/routes.constant';
 @Public()
 @ApiTags('Upload')
-@Controller('upload')
+@Controller({ path: 'upload', version: '1' })
 export class UploadController {
   @Post()
   @ApiOperation({ summary: 'Upload a file to the server (PDF/Images only)' })
