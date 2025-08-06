@@ -20,7 +20,7 @@ import { Request } from 'express';
 import { Public } from 'src/common/constants/routes.constant';
 @Public()
 @ApiTags('Upload')
-@Controller('upload')
+@Controller({ path: 'upload', version: '1' })
 export class UploadController {
   @Post()
   @ApiOperation({ summary: 'Upload a file to the server (PDF/Images only)' })
@@ -41,7 +41,7 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './assets',
+        destination: './uploads/assets',
         filename: (req, file, cb) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
