@@ -5,7 +5,11 @@ import { join } from 'path';
 
 import * as compression from 'compression';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
-import { ValidationPipe, ClassSerializerInterceptor, VersioningType } from '@nestjs/common';
+import {
+  ValidationPipe,
+  ClassSerializerInterceptor,
+  VersioningType,
+} from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 const corsOptions: CorsOptions = {
@@ -36,7 +40,9 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Manuscript Management API')
-    .setDescription('API for managing manuscripts, reviews, and user interactions.')
+    .setDescription(
+      'API for managing manuscripts, reviews, and user interactions.',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();
@@ -49,7 +55,7 @@ async function bootstrap() {
   });
 
   // ✅ THIS IS THE KEY PART
-  app.useStaticAssets(join(__dirname, '..', 'assets'), {
+  app.useStaticAssets(join(process.cwd(), 'assets'), {
     prefix: '/assets/',
   });
 
@@ -58,7 +64,9 @@ async function bootstrap() {
 
   console.log(`✅ Server running at http://localhost:${port}`);
   console.log(`📘 Swagger at http://localhost:${port}/docs`);
-  console.log(`📂 Serving static files from ${join(__dirname, '..', 'assets')}`);
+  console.log(
+    `📂 Serving static files from ${join(__dirname, '..', 'assets')}`,
+  );
 }
 
 bootstrap();
