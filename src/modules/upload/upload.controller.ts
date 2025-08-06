@@ -17,13 +17,16 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Public } from 'src/common/constants/routes.constant';
+
 @Public()
 @ApiTags('Upload')
 @Controller({ path: 'upload', version: '1' })
 export class UploadController {
   @Post()
-  @ApiOperation({ summary: 'Upload a file to the server (PDF/Images only)' })
+  @ApiOperation({ summary: 'Upload any file (max size: 5MB)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Upload file',
@@ -41,32 +44,69 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads/assets',
+        destination: (req, file, cb) => {
+          const now = new Date();
+          const dateFolder = now.toISOString().split('T')[0];
+
+          let typeFolder = 'other';
+          if (file.mimetype.startsWith('image/')) {
+            typeFolder = 'image';
+          } else if (file.mimetype === 'application/pdf') {
+            typeFolder = 'pdf';
+          }
+
+          const uploadPath = path.join(
+            process.cwd(),
+            'upload',
+            'assets',
+            dateFolder,
+            typeFolder,
+          );
+
+          fs.mkdirSync(uploadPath, { recursive: true });
+          cb(null, uploadPath);
+        },
         filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
+          const now = new Date();
+          const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
+          const randomId = Math.random().toString(36).substring(2, 8);
+          const originalName = file.originalname.replace(/\s+/g, '_');
+          const ext = extname(originalName);
+
+          let fileType = 'file';
+          if (file.mimetype.startsWith('image/')) {
+            fileType = 'image';
+          } else if (file.mimetype === 'application/pdf') {
+            fileType = 'pdf';
+          }
+
+          const finalName = `${fileType}-${dateStr}-${randomId}-${originalName}`;
+          console.log(`Generated filename: ${finalName}`);
+          cb(null, finalName);
         },
       }),
       limits: {
         fileSize: 5 * 1024 * 1024, // 5MB
       },
-      fileFilter: (req, file, cb) => {
-        const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-        if (allowedMimeTypes.includes(file.mimetype)) {
-          cb(null, true);
-        } else {
-          cb(new BadRequestException('Only PDF, JPG, and PNG files are allowed'), false);
-        }
-      },
     }),
   )
-uploadFile(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  uploadFile(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
     if (!file) {
-      throw new BadRequestException('File upload failed or invalid file type');
+      throw new BadRequestException('No file uploaded or upload failed');
+    }
+
+    const now = new Date();
+    const dateFolder = now.toISOString().split('T')[0];
+
+    let typeFolder = 'other';
+    if (file.mimetype.startsWith('image/')) {
+      typeFolder = 'image';
+    } else if (file.mimetype === 'application/pdf') {
+      typeFolder = 'pdf';
     }
 
     const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const fileUrl = `${baseUrl}/assets/${file.filename}`;
+    const fileUrl = `${baseUrl}/assets/${dateFolder}/${typeFolder}/${file.filename}`;
 
     return {
       message: 'File uploaded successfully',
