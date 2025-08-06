@@ -49,7 +49,7 @@ async function bootstrap() {
   });
 
   // ✅ THIS IS THE KEY PART
-app.useStaticAssets(join(process.cwd(), 'assets'), {
+ app.useStaticAssets(join(__dirname, '..', 'uploads', 'assets'), {
   prefix: '/assets/',
 });
 
