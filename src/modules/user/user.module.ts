@@ -15,8 +15,6 @@ import { RolesPermissionsController } from './controllers/roles-permissions.cont
   controllers: [
     UserController,
     RolesPermissionsController,
-    
-    // RolesPermissionsController,
   ],
   providers: [
     UserService,
@@ -27,9 +25,7 @@ import { RolesPermissionsController } from './controllers/roles-permissions.cont
   exports: [
     UserService,
     RolesPermissionsService,
-    CryptoService,
-    // RolesPermissionsService,
-
+    CryptoService
   ],
 })
 export class UserModule {}
