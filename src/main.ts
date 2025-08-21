@@ -24,7 +24,7 @@ async function bootstrap() {
   app.use(compression());
 
   app.enableCors(corsOptions);
-  app.setGlobalPrefix('api');
+  // app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI });
   app.useGlobalPipes(
     new ValidationPipe({
