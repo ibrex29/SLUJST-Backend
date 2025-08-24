@@ -99,6 +99,7 @@ export class PublicationService {
         title,
         abstract,
         keywords,
+        pageRange: publishManuscriptDto.pageRange,
         Authors: { set: authors },
         issueId: issue,
         DOI: doi,

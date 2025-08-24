@@ -44,6 +44,15 @@ export class PublishManuscriptDto {
   @IsNotEmpty()
   @IsString()
   keywords: string;
+  
+@ApiProperty({
+    example: '1-15',
+    description: 'The page range of the publication (optional)',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  pageRange?: string;
 
   @ApiProperty({
     example: 'd290f1ee-6c54-4b01-90e6-d701748f0851',
