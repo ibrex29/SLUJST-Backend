@@ -47,6 +47,7 @@ lerna-debug.log*
 
 /.upload
 
+
 # temp directory
 .temp
 .tmp

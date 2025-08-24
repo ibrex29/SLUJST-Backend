@@ -1,5 +1,5 @@
-import { Controller, Post, Body, Request,Patch, UseGuards, Get, Param, HttpCode, HttpException, HttpStatus, Query } from '@nestjs/common'; 
-import { ApiTags, ApiOperation, ApiCreatedResponse, ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Body, Request,Patch, UseGuards, Get, Param, Query } from '@nestjs/common'; 
+import { ApiTags, ApiOperation, ApiCreatedResponse, ApiBadRequestResponse, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { ManuscriptService } from './manuscript.service';
 import { CreateManuscriptDto } from './dto/create-manuscript.dto';
 import { RolesGuard } from '../auth/guard/role.guard';
@@ -96,22 +96,6 @@ export class ManuscriptController {
   async listSubmitted(): Promise<Manuscript[]> {
     return this.manuscriptService.listSubmittedManuscripts();
   }
- 
-  
-  // @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
-  // @Get('assigned')
-  // @ApiOperation({ summary: 'Get all assigned manuscripts' })
-  // async getAllAssignedManuscripts() {
-  //   return this.manuscriptService.getAllAssignedManuscripts();
-  // }
-
-
-  // @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
-  // @Get('unassigned')
-  // @ApiOperation({ summary: 'Get all unassigned manuscripts' })
-  // async getAllUnassignedManuscripts() {
-  //   return this.manuscriptService.getAllUnassignedManuscripts();
-  // }
 
   @Get(':manuscriptId/details')
   @Role(UserType.EDITOR_IN_CHIEF,UserType.SECTION_EDITOR)
@@ -151,21 +135,5 @@ export class ManuscriptController {
   async getManuscriptsByStatus(@Param('status') status: Status) {
     return this.manuscriptService.getManuscriptsByStatus(status);
   }
-  // @Public()
-  // @ApiOperation({ summary: 'Get statistics of manuscripts ' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'Manuscripts stats retreived  successfully.',
-  // })
-  
-  // @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
-  // @Get("analytics")
-  // // @Role(UserType.EDITOR)
-  // async getStatistics() {
-  //   return this.manuscriptService.getStatistics();
-  // }
-
-
-
 
 }
