@@ -5,10 +5,7 @@ import {
   Body,
   HttpStatus,
   HttpCode,
-  Request,
   UseGuards,
-  Put,
-  Param,
   Query,
 } from '@nestjs/common';
 import {
@@ -23,7 +20,6 @@ import { CreateAuthorDto } from './dtos/create-author.dto';
 import { Public, Role } from 'src/common/constants/routes.constant';
 import { UserType } from '../user/types/user.type';
 import { RolesGuard } from '../auth/guard/role.guard';
-import { UpdateAuthorDto } from './dtos/update-author.dto';
 import { User } from 'src/common/decorators/param-decorator/User.decorator';
 import { FetchManuscriptDTO } from '../manuscript/dto/fetch-manuscript.dto';
 

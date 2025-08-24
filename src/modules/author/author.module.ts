@@ -1,5 +1,3 @@
-// src/module/author/author.module.ts
-
 import { Module } from '@nestjs/common';
 
 import { AuthorService } from './author.service';

@@ -1,7 +1,17 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { PublishManuscriptDto } from './dto/publish-manuscript.dto';
-import { Manuscript, Prisma, Publication, ReactionType, Status } from '@prisma/client';
+import {
+  Manuscript,
+  Prisma,
+  Publication,
+  ReactionType,
+  Status,
+} from '@prisma/client';
 import { CreateVolumeDto } from './dto/create-volume.dto';
 import { UpdateVolumeDto } from './dto/update-volume.dto';
 import { CreateIssueDto } from './dto/create-issue.dto';
@@ -23,37 +33,51 @@ export class PublicationService {
     });
   }
 
-  async publishManuscript(publishManuscriptDto: PublishManuscriptDto, userId: string) {
-    const { manuscriptId, title, abstract, authors, keywords, issue, doi, formattedManuscript } = publishManuscriptDto;
-  
+  async publishManuscript(
+    publishManuscriptDto: PublishManuscriptDto,
+    userId: string,
+  ) {
+    const {
+      manuscriptId,
+      title,
+      abstract,
+      authors,
+      keywords,
+      issue,
+      doi,
+      formattedManuscript,
+    } = publishManuscriptDto;
+
     let finalManuscriptId = manuscriptId || uuidv4();
-  
+
     if (manuscriptId) {
       const manuscript = await this.prisma.manuscript.findUnique({
         where: { id: manuscriptId },
       });
-  
+
       if (!manuscript) {
         throw new BadRequestException('Manuscript not found');
       }
-  
+
       if (manuscript.status !== Status.ACCEPTED) {
-        throw new BadRequestException('Manuscript status must be ACCEPTED by the Editorial Team to be published');
+        throw new BadRequestException(
+          'Manuscript status must be ACCEPTED by the Editorial Team to be published',
+        );
       }
 
       const issueExists = await this.prisma.issue.findUnique({
         where: { id: issue },
       });
-    
+
       if (!issueExists) {
         throw new BadRequestException('Issue not found');
       }
-  
+
       await this.prisma.manuscript.update({
         where: { id: manuscriptId },
         data: {
           status: Status.PUBLISHED,
-          isPublished: true
+          isPublished: true,
         },
       });
     } else {
@@ -69,13 +93,13 @@ export class PublicationService {
         },
       });
     }
-  
+
     await this.prisma.publication.create({
       data: {
         title,
         abstract,
         keywords,
-        Authors:{ set: authors },
+        Authors: { set: authors },
         issueId: issue,
         DOI: doi,
         userId,
@@ -85,7 +109,7 @@ export class PublicationService {
         isActive: true,
       },
     });
-  
+
     return { message: 'Manuscript published successfully.' };
   }
 
@@ -93,7 +117,7 @@ export class PublicationService {
     const whereCondition: Prisma.PublicationWhereInput = {
       isActive: filters.isActive ?? undefined,
       issueId: filters.issueId ?? undefined,
-      Issue: filters.volumeId ? { volumeId: filters.volumeId } : undefined, 
+      Issue: filters.volumeId ? { volumeId: filters.volumeId } : undefined,
       OR: filters.search
         ? [
             { title: { contains: filters.search, mode: 'insensitive' } },
@@ -102,9 +126,11 @@ export class PublicationService {
           ]
         : undefined,
     };
-  
-    const itemCount = await this.prisma.publication.count({ where: whereCondition });
-  
+
+    const itemCount = await this.prisma.publication.count({
+      where: whereCondition,
+    });
+
     const publications = await this.prisma.publication.findMany({
       where: whereCondition,
       skip: filters.skip,
@@ -125,24 +151,27 @@ export class PublicationService {
         },
       },
     });
-  
+
     const publicationsWithReactions = publications.map((publication) => {
-      const reactionCounts = publication.Reactions.reduce((acc, reaction) => {
-        acc[reaction.type] = (acc[reaction.type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-  
+      const reactionCounts = publication.Reactions.reduce(
+        (acc, reaction) => {
+          acc[reaction.type] = (acc[reaction.type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
       return {
         ...publication,
         Reactions: reactionCounts,
       };
     });
-  
+
     const paginationMetadata = new PaginationMetadataDTO({
       pageOptionsDTO: filters,
       itemCount,
     });
-  
+
     return {
       data: publicationsWithReactions,
       meta: paginationMetadata,
@@ -151,7 +180,7 @@ export class PublicationService {
 
   async getLatestPublications(take: number = 8) {
     const publications = await this.prisma.publication.findMany({
-      where: { isActive: true},
+      where: { isActive: true },
       take,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -168,21 +197,24 @@ export class PublicationService {
         },
       },
     });
-  
+
     const publicationsWithReactions = publications.map((publication) => {
-      const reactionCounts = publication.Reactions.reduce((acc, reaction) => {
-        acc[reaction.type] = (acc[reaction.type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-  
+      const reactionCounts = publication.Reactions.reduce(
+        (acc, reaction) => {
+          acc[reaction.type] = (acc[reaction.type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
       return {
         ...publication,
         Reactions: reactionCounts,
       };
     });
-  
+
     return { data: publicationsWithReactions };
-  }  
+  }
 
   async getLatestIssues(take: number = 8) {
     return await this.prisma.issue.findMany({
@@ -197,8 +229,8 @@ export class PublicationService {
         },
       },
     });
-  }  
-  
+  }
+
   async getPublicationById(id: string) {
     const publication = await this.prisma.publication.findUnique({
       where: { id },
@@ -219,25 +251,28 @@ export class PublicationService {
         },
       },
     });
-  
+
     if (!publication) {
       throw new NotFoundException(`Publication with ID ${id} not found`);
     }
 
-    const reactionCounts = publication.Reactions.reduce((acc, reaction) => {
-      acc[reaction.type] = (acc[reaction.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-  
+    const reactionCounts = publication.Reactions.reduce(
+      (acc, reaction) => {
+        acc[reaction.type] = (acc[reaction.type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
     return {
       ...publication,
-      Reactions: reactionCounts, 
+      Reactions: reactionCounts,
     };
   }
 
   async searchPublications(filters: FetchPublicationDto) {
     const { search, skip, limit } = filters;
-  
+
     const publications = await this.prisma.$queryRaw<any[]>`
       SELECT *, 
         ts_rank_cd(
@@ -253,11 +288,15 @@ export class PublicationService {
       ORDER BY rank DESC
       LIMIT ${limit} OFFSET ${skip};
     `;
-  
+
     return { data: publications };
   }
-  
-  async addReaction(publicationId: string, reactionType: ReactionType, userId: string) {
+
+  async addReaction(
+    publicationId: string,
+    reactionType: ReactionType,
+    userId: string,
+  ) {
     await this.ensurePublicationExists(publicationId);
 
     return this.prisma.reaction.upsert({
@@ -383,30 +422,31 @@ export class PublicationService {
       where: { id },
     });
   }
-  
-    async incrementDownloadTimes(publicationId: string): Promise<{ message: string; downloadTimes: number }> {
-      const publication = await this.prisma.publication.findUnique({
-        where: { id: publicationId },
-      });
-  
-      if (!publication) {
-        throw new NotFoundException('Publication not found');
-      }
-  
-      const updatedPublication = await this.prisma.publication.update({
-        where: { id: publicationId },
-        data: {
-          downloadTimes: { increment: 1 },
-        },
-        select: {
-          downloadTimes: true,
-        },
-      });
-  
-      return {
-        message: 'Download count updated successfully',
-        downloadTimes: updatedPublication.downloadTimes,
-      };
+
+  async incrementDownloadTimes(
+    publicationId: string,
+  ): Promise<{ message: string; downloadTimes: number }> {
+    const publication = await this.prisma.publication.findUnique({
+      where: { id: publicationId },
+    });
+
+    if (!publication) {
+      throw new NotFoundException('Publication not found');
     }
+
+    const updatedPublication = await this.prisma.publication.update({
+      where: { id: publicationId },
+      data: {
+        downloadTimes: { increment: 1 },
+      },
+      select: {
+        downloadTimes: true,
+      },
+    });
+
+    return {
+      message: 'Download count updated successfully',
+      downloadTimes: updatedPublication.downloadTimes,
+    };
   }
-  
+}

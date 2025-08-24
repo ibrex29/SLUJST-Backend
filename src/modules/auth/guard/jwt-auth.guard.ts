@@ -10,7 +10,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   constructor(private reflector: Reflector) {
     super();
-    this.strategy = 'jwt'; // Set the strategy name
+    this.strategy = 'jwt'; 
   }
 
   canActivate(context: ExecutionContext) {
@@ -20,7 +20,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getClass(),
     ]);
     if (isPublic) {
-      this.logger.log('Public route, bypassing JWT guard');
       return true;
     }
     return super.canActivate(context);

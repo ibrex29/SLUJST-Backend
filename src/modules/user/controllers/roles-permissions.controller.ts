@@ -17,8 +17,6 @@ import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiO
 import { RolesPermissionsService } from 'src/modules/services/roles-permissions.service';
 import { CreateMultipleRolesDto } from '../dtos/roles-permissions/create-role.dto';
 import { UpdateRoleDto } from '../dtos/roles-permissions/update-role.dto';
-import { CreatePermissionDto } from '../dtos/roles-permissions/create-permission.dto';
-import { UpdatePermissionDto } from '../dtos/roles-permissions/update-permission.dto';
 import { Public } from 'src/common/constants/routes.constant';
 
 @ApiTags('Manage Roles and Permissions')
@@ -64,39 +62,10 @@ export class RolesPermissionsController {
     return this.rolesPermissionsService.updateRole(id, updateRoleDto);
   }
 
-  @Version('1')
-  @Delete('roles/:id')
-  deleteRole(@Param('id') id: string): Promise<void> {
-    return this.rolesPermissionsService.deleteRole(id);
-  }
-
   // @Version('1')
-  // @Post('permissions')
-  // createPermission(@Body() createPermissionDto: CreatePermissionDto) {
-  //   return this.rolesPermissionsService.createPermission(createPermissionDto);
+  // @Delete('roles/:id')
+  // deleteRole(@Param('id') id: string): Promise<void> {
+  //   return this.rolesPermissionsService.deleteRole(id);
   // }
 
-  // @Version('1')
-  // @Get('permissions/:id')
-  // findPermissionById(@Param('id') id: string) {
-  //   return this.rolesPermissionsService.findPermissionById(id);
-  // }
-
-  // @Version('1')
-  // @Put('permissions/:id')
-  // updatePermission(
-  //   @Param('id') id: string,
-  //   @Body() updatePermissionDto: UpdatePermissionDto,
-  // ) {
-  //   return this.rolesPermissionsService.updatePermission(
-  //     id,
-  //     updatePermissionDto,
-  //   );
-  // }
-
-  // @Version('1')
-  // @Delete('permissions/:id')
-  // deletePermission(@Param('id') id: string): Promise<void> {
-  //   return this.rolesPermissionsService.deletePermission(id);
-  // }
-}
+ }

@@ -6,8 +6,6 @@ import {
   Param,
   Patch,
   UseGuards,
-  Request,
-  Query,
 } from '@nestjs/common';
 import { SectionService } from './section.service';
 import {
@@ -19,7 +17,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { RolesGuard } from 'src/modules/auth/guard/role.guard';
-import { UserType } from 'src/modules/user/types/user.type';
 import { CreateSectionDto } from './dto/create-section.dto';
 
 import { Manuscript, Section } from '@prisma/client';

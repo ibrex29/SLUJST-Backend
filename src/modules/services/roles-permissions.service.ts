@@ -16,13 +16,13 @@ export class RolesPermissionsService {
     const rolesData = createRoleDtos.map(role => ({
       roleName: role.roleName,
       description: role.description || '',
-      createdBy: "userId", // Replace with actual user ID from request context
+      createdBy: "userId", 
       updatedBy: "userId",
     }));
 
     return this.prisma.role.createMany({
       data: rolesData,
-      skipDuplicates: true, // Avoids duplicate role insertion errors
+      skipDuplicates: true,
     });
   }
 

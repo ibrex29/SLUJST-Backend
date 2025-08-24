@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsEmail, IsString, MinLength, Matches, IsEnum, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsEmail, IsString, MinLength, Matches, IsEnum, IsOptional, IsBoolean } from 'class-validator';
 
 enum Title {
   Mr = 'Mr',
@@ -40,5 +40,16 @@ export class CreateAuthorDto {
   @ApiProperty({ example: 'Artificial Intelligence', description: 'The expertise area of the author' })
   @IsNotEmpty()
   expertiseArea: string;
-  
+
+  @ApiProperty({ example: 'PhD in Computer Science', description: 'The highest qualification of the author', required: false })
+  @IsOptional()
+  @IsString()
+  higestQualification?: string;
+
+  @ApiProperty({ example: false, description: 'Indicates if the author is interested in reviewing manuscripts', required: false })
+  @IsOptional()
+  @IsBoolean()
+  reviewInterest?: boolean;
+
+
 }
