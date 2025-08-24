@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EditorRole, User } from '@prisma/client';
+import { EditorRole, Prisma, User } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { UserNotFoundException } from './exceptions/UserNotFound.exception';
 import { UpdateUserParams } from './types';
@@ -13,6 +13,9 @@ import { CreateUserDto } from './dtos/create-user.dto';
 import { UserType } from './types/user.type';
 import { GroupedReviewersDto } from './dtos/grouped-reviewers.dto';
 import { UpdateReviewerDto } from './dtos/update-reviewer.dto';
+import { FetchUsersDTO } from './dtos/fetch-users.dto';
+import { UpdateUserRoleOrSectionDTO } from './dtos/update-user-role.dto';
+import { UpdateUserProfileDTO } from './dtos/update-user-profile.dto';
 
 @Injectable()
 export class UserService {
@@ -40,20 +43,6 @@ export class UserService {
       include: {
         roles: true,
       },
-    });
-  }
-
-  async updateUser(
-    userId: string,
-    updateUserDetails: UpdateUserParams,
-  ): Promise<User> {
-    await this.validateUserExists(userId);
-
-    return this.prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: updateUserDetails,
     });
   }
 
@@ -273,6 +262,167 @@ export class UserService {
     return createdUser;
   }
 
+  async getPaginatedUsers(query: FetchUsersDTO) {
+    const { search, sortField, sortOrder, roleId, sectionId } = query;
+
+    const where: Prisma.UserWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { email: { contains: search, mode: 'insensitive' } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (roleId) {
+      where.roles = {
+        some: {
+          id: roleId,
+        },
+      };
+    }
+
+    if (sectionId) {
+      where.Editor = {
+        sectionId: sectionId,
+      };
+    }
+
+    return this.prisma.paginate('User', {
+      where,
+      query,
+      orderBy: { [sortField]: sortOrder },
+      include: {
+        roles: true,
+        Author: true,
+        Editor: true,
+        Reviewer: true,
+      },
+    });
+  }
+
+  async getUserById(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        roles: true,
+        Author: true,
+        Editor: true,
+        Reviewer: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    return user;
+  }
+
+  async updateUserRoleOrSection(
+    userId: string,
+    data: UpdateUserRoleOrSectionDTO,
+  ) {
+    const { roleId, sectionId, replaceRoles } = data;
+
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        include: { roles: true, Editor: true, Reviewer: true },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (roleId) {
+        const role = await tx.role.findUnique({ where: { id: roleId } });
+        if (!role) throw new NotFoundException('Role not found');
+
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            roles: replaceRoles
+              ? { set: [{ id: role.id }] }
+              : { connect: { id: role.id } },
+          },
+        });
+      }
+
+      if (sectionId) {
+        if (user.Editor) {
+          await tx.editor.update({
+            where: { userId: user.id },
+            data: { sectionId },
+          });
+        } else if (user.Reviewer) {
+          await tx.reviewer.update({
+            where: { userId: user.id },
+            data: { sectionId },
+          });
+        } else {
+          throw new BadRequestException(
+            'Section ID can only be assigned to Editors or Reviewers',
+          );
+        }
+      }
+
+      return tx.user.findUnique({
+        where: { id: userId },
+        include: { roles: true, Editor: true, Reviewer: true },
+      });
+    });
+  }
+
+  async updateUser(userId: string, dto: UpdateUserProfileDTO) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { Author: true, Reviewer: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const { title, firstName, lastName, phoneNumber } = dto;
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { title, firstName, lastName, phoneNumber },
+    });
+
+    if (user.Author) {
+      const {
+        affiliation,
+        expertiseArea,
+        higestQualification,
+        reviewInterest,
+      } = dto;
+      await this.prisma.author.update({
+        where: { userId },
+        data: {
+          affiliation,
+          expertiseArea,
+          higestQualification,
+          reviewInterest,
+        },
+      });
+    }
+
+    if (user.Reviewer) {
+      const { reviewerExpertiseArea, reviewerHighestQualification } = dto;
+      await this.prisma.reviewer.update({
+        where: { userId },
+        data: {
+          expertiseArea: reviewerExpertiseArea,
+          higestQualification: reviewerHighestQualification,
+        },
+      });
+    }
+
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { Author: true, Reviewer: true, Editor: true, roles: true },
+    });
+  }
+
   async groupReviewersBySection(): Promise<GroupedReviewersDto[]> {
     const reviewers = await this.prisma.reviewer.findMany({
       include: {
@@ -307,43 +457,6 @@ export class UserService {
       {} as { [key: string]: GroupedReviewersDto },
     );
 
-    // Convert the grouped object to an array
     return Object.values(groupedReviewers);
-  }
-
-  async updateReviewerProfile(
-    userId: string,
-    updateReviewerDto: UpdateReviewerDto,
-  ) {
-    const { firstName, lastName, expertiseArea } = updateReviewerDto;
-
-    // Check if the user exists
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
-    }
-
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        firstName,
-        lastName,
-        // email,
-        // password: hashedPassword,
-      },
-    });
-
-    // Update the reviewer profile
-    const updatedReviewer = await this.prisma.reviewer.update({
-      where: { userId: userId },
-      data: {
-        expertiseArea,
-      },
-    });
-
-    return { updatedUser, updatedReviewer };
   }
 }
