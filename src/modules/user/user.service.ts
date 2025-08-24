@@ -7,12 +7,10 @@ import {
 import { EditorRole, Prisma, User } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { UserNotFoundException } from './exceptions/UserNotFound.exception';
-import { UpdateUserParams } from './types';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UserType } from './types/user.type';
 import { GroupedReviewersDto } from './dtos/grouped-reviewers.dto';
-import { UpdateReviewerDto } from './dtos/update-reviewer.dto';
 import { FetchUsersDTO } from './dtos/fetch-users.dto';
 import { UpdateUserRoleOrSectionDTO } from './dtos/update-user-role.dto';
 import { UpdateUserProfileDTO } from './dtos/update-user-profile.dto';
@@ -373,6 +371,61 @@ export class UserService {
         include: { roles: true, Editor: true, Reviewer: true },
       });
     });
+  }
+
+  async getUsersAnalytics(query: FetchUsersDTO) {
+    const { sectionId } = query;
+
+    const where: Prisma.UserWhereInput = sectionId
+      ? { Editor: { sectionId } }
+      : {};
+
+    const totalUsers = await this.prisma.user.count({ where });
+
+    const roles = await this.prisma.user.findMany({
+      where,
+      select: { roles: { select: { roleName: true } } },
+    });
+
+    const userTypeDistribution: Record<UserType, number> = Object.values(
+      UserType,
+    ).reduce(
+      (acc, type) => ({ ...acc, [type]: 0 }),
+      {} as Record<UserType, number>,
+    );
+
+    roles.forEach((u) => {
+      u.roles.forEach((r) => {
+        const type = r.roleName as UserType;
+        userTypeDistribution[type] += 1;
+      });
+    });
+
+    const editorCounts = await this.prisma.editor.groupBy({
+      by: ['sectionId'],
+      _count: { userId: true },
+      where: sectionId ? { sectionId } : {},
+    });
+
+    const sectionIds = editorCounts.map((e) => e.sectionId);
+    const sections = await this.prisma.section.findMany({
+      where: { id: { in: sectionIds } },
+      select: { id: true, name: true },
+    });
+
+    const sectionMap = Object.fromEntries(sections.map((s) => [s.id, s.name]));
+
+    const sectionDistribution: Record<string, number> = {};
+    editorCounts.forEach((sc) => {
+      const name = sectionMap[sc.sectionId] || 'Unassigned';
+      sectionDistribution[name] = sc._count.userId;
+    });
+
+    return {
+      totalUsers,
+      userTypeDistribution,
+      sectionDistribution,
+    };
   }
 
   async updateUser(userId: string, dto: UpdateUserProfileDTO) {

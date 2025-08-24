@@ -47,6 +47,12 @@ export class UserController {
     return this.userService.getPaginatedUsers(query);
   }
 
+  @Public()
+  @Get('analytics')
+  async getUsersAnalytics(@Query() query: FetchUsersDTO) {
+    return this.userService.getUsersAnalytics(query);
+  }
+
   @Get(':id')
   @ApiParam({ name: 'id', description: 'User ID' })
   async getUserById(@Param('id', ParseUUIDPipe) id: string) {
