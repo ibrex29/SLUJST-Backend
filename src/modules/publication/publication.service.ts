@@ -20,6 +20,7 @@ import { UpdateIssueDto } from './dto/update-issue.dto';
 import { FetchPublicationDto } from './dto/Fetch-Publication-Dto';
 import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
 import { Order } from 'src/common/dto/pagination-query.dto';
+import { UpdatePublicationDto } from './dto/update-published-manuscript.dto';
 
 @Injectable()
 export class PublicationService {
@@ -112,6 +113,66 @@ export class PublicationService {
     });
 
     return { message: 'Manuscript published successfully.' };
+  }
+
+  async updatePublication(
+    publicationId: string,
+    updatePublicationDto: UpdatePublicationDto,
+    userId: string,
+  ) {
+    const publication = await this.prisma.publication.findUnique({
+      where: { id: publicationId },
+    });
+
+    if (!publication) {
+      throw new BadRequestException('Publication not found');
+    }
+
+    // // Ensure the user updating is the creator (optional)
+    // if (publication.createdByUserId !== userId) {
+    //   throw new BadRequestException(
+    //     'You are not authorized to update this publication',
+    //   );
+    // }
+
+    const {
+      title,
+      abstract,
+      authors,
+      keywords,
+      doi,
+      issue: issueId,
+      formattedManuscript,
+      pageRange,
+    } = updatePublicationDto;
+
+    // If issueId is provided, validate it exists
+    if (issueId) {
+      const issueExists = await this.prisma.issue.findUnique({
+        where: { id: issueId },
+      });
+
+      if (!issueExists) {
+        throw new BadRequestException('Issue not found');
+      }
+    }
+
+    await this.prisma.publication.update({
+      where: { id: publicationId },
+      data: {
+        title,
+        abstract,
+        keywords,
+        DOI: doi,
+        issueId,
+        formattedManuscript,
+        pageRange,
+        Authors: authors ? { set: authors } : undefined,
+        updatedByUserId: userId,
+      },
+    });
+
+    return { message: 'Publication updated successfully.' };
   }
 
   async getPublications(filters: FetchPublicationDto) {
