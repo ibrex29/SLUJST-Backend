@@ -10,6 +10,7 @@ import {
   Request,
   Query,
   Put,
+  HttpStatus,
 } from '@nestjs/common';
 import { PublicationService } from './publication.service';
 import { Public, Role } from 'src/common/constants/routes.constant';
@@ -70,7 +71,11 @@ export class PublicationController {
     @Body() updatePublicationDto: UpdatePublicationDto,
     @User('userId') userId: string,
   ) {
-    return this.publicationService.updatePublication(id, updatePublicationDto, userId);
+    return this.publicationService.updatePublication(
+      id,
+      updatePublicationDto,
+      userId,
+    );
   }
 
   @Public()
@@ -83,6 +88,36 @@ export class PublicationController {
   @Get('latest-publication')
   async getLatestPublications(@Query('limit') take?: string) {
     return this.publicationService.getLatestPublications(Number(take) || 8);
+  }
+
+  @Patch(':id/activate')
+  async activatePublication(
+    @Param('id') id: string,
+    @User('userId') userId: string,
+  ) {
+    const message = await this.publicationService.activatePublication(
+      id,
+      userId,
+    ); 
+    return {
+      statusCode: HttpStatus.OK,
+      message,
+    };
+  }
+
+  @Patch(':id/deactivate')
+  async deactivatePublication(
+    @Param('id') id: string,
+    @User('userId') userId: string,
+  ) {
+    const message = await this.publicationService.deactivatePublication(
+      id,
+      userId,
+    ); 
+    return {
+      statusCode: HttpStatus.OK,
+      message,
+    };
   }
 
   @Public()

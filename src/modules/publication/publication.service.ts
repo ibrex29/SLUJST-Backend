@@ -8,7 +8,6 @@ import { PublishManuscriptDto } from './dto/publish-manuscript.dto';
 import {
   Manuscript,
   Prisma,
-  Publication,
   ReactionType,
   Status,
 } from '@prisma/client';
@@ -329,6 +328,48 @@ export class PublicationService {
     return {
       ...publication,
       Reactions: reactionCounts,
+    };
+  }
+
+  async activatePublication(publicationId: string, userId: string) {
+    const publication = await this.prisma.publication.findUnique({
+      where: { id: publicationId },
+    });
+
+    if (!publication) {
+      throw new BadRequestException('Publication not found');
+    }
+
+    await this.prisma.publication.update({
+      where: { id: publicationId },
+      data: {
+        isActive: true,
+        isPublished: true,
+        updatedByUserId: userId,
+      },
+    });
+
+    return { message: 'Publication has been activated successfully.' };
+  }
+
+  async deactivatePublication(publicationId: string, userId: string) {
+    const publication = await this.prisma.publication.findUnique({
+      where: { id: publicationId },
+    });
+
+    if (!publication) throw new BadRequestException('Publication not found');
+
+    await this.prisma.publication.update({
+      where: { id: publicationId },
+      data: {
+        isActive: false,
+        isPublished: false,
+        updatedByUserId: userId,
+      },
+    });
+
+    return {
+      message: 'Publication has been unpublished and deactivated successfully.',
     };
   }
 
