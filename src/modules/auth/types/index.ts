@@ -2,6 +2,7 @@ export type JwtPayload = {
   sub: string;
   roles: string[];
   email?: string;
+  sectionId?: string | null;
 };
 
 export type SessionUser = {

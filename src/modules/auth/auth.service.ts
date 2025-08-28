@@ -27,20 +27,32 @@ export class AuthService {
     return null;
   }
 
-  async login(user: any) {
-    // return payload that will be used in user session
-    // TODO: add user roles in payload for RoleGuard
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      roles: user.roles,
-    };
-    const tokens = await this.jwtTokenService.generateToken(payload);
-    return {
-      ...tokens,
-      roles: payload.roles,
-    };
+async login(user: any) {
+  // Determine sectionId if user is editor or reviewer
+  let sectionId: string | null = null;
+
+  if (user.Editor) {
+    sectionId = user.Editor.sectionId ?? null;
+  } else if (user.Reviewer) {
+    sectionId = user.Reviewer.sectionId ?? null;
   }
+
+  const payload: JwtPayload = {
+    sub: user.id,
+    email: user.email,
+    roles: user.roles,
+    sectionId, // include in payload
+  };
+
+  const tokens = await this.jwtTokenService.generateToken(payload);
+
+  return {
+    ...tokens,
+    roles: payload.roles,
+    sectionId, // also return in API response
+  };
+}
+
 
   async logout(token: string) {
     return this.jwtTokenService.blacklist(token);
