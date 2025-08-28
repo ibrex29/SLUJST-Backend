@@ -4,7 +4,6 @@ import { JwtTokenService } from 'src/common/token/jwt-token.service';
 import { UserService } from 'src/modules/user/user.service';
 import { JwtPayload } from './types';
 
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -20,39 +19,36 @@ export class AuthService {
       (await this.cryptoService.comparePassword(password, user.password));
 
     if (user && isMatch) {
-      // remove password hash from result
       const { password, ...result } = user;
       return result;
     }
     return null;
   }
 
-async login(user: any) {
-  // Determine sectionId if user is editor or reviewer
-  let sectionId: string | null = null;
+  async login(user: any) {
+    let sectionId: string | null = null;
 
-  if (user.Editor) {
-    sectionId = user.Editor.sectionId ?? null;
-  } else if (user.Reviewer) {
-    sectionId = user.Reviewer.sectionId ?? null;
+    if (user.Editor) {
+      sectionId = user.Editor.sectionId ?? null;
+    } else if (user.Reviewer) {
+      sectionId = user.Reviewer.sectionId ?? null;
+    }
+
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      roles: user.roles,
+      sectionId,
+    };
+
+    const tokens = await this.jwtTokenService.generateToken(payload);
+
+    return {
+      ...tokens,
+      roles: payload.roles,
+      sectionId,
+    };
   }
-
-  const payload: JwtPayload = {
-    sub: user.id,
-    email: user.email,
-    roles: user.roles,
-    sectionId, // include in payload
-  };
-
-  const tokens = await this.jwtTokenService.generateToken(payload);
-
-  return {
-    ...tokens,
-    roles: payload.roles,
-    sectionId, // also return in API response
-  };
-}
-
 
   async logout(token: string) {
     return this.jwtTokenService.blacklist(token);
