@@ -5,12 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { PublishManuscriptDto } from './dto/publish-manuscript.dto';
-import {
-  Manuscript,
-  Prisma,
-  ReactionType,
-  Status,
-} from '@prisma/client';
+import { Manuscript, Prisma, ReactionType, Status } from '@prisma/client';
 import { CreateVolumeDto } from './dto/create-volume.dto';
 import { UpdateVolumeDto } from './dto/update-volume.dto';
 import { CreateIssueDto } from './dto/create-issue.dto';
@@ -127,13 +122,6 @@ export class PublicationService {
       throw new BadRequestException('Publication not found');
     }
 
-    // // Ensure the user updating is the creator (optional)
-    // if (publication.createdByUserId !== userId) {
-    //   throw new BadRequestException(
-    //     'You are not authorized to update this publication',
-    //   );
-    // }
-
     const {
       title,
       abstract,
@@ -145,7 +133,6 @@ export class PublicationService {
       pageRange,
     } = updatePublicationDto;
 
-    // If issueId is provided, validate it exists
     if (issueId) {
       const issueExists = await this.prisma.issue.findUnique({
         where: { id: issueId },
@@ -239,6 +226,22 @@ export class PublicationService {
     };
   }
 
+  async deletePublication(publicationId: string, userId: string) {
+    const publication = await this.prisma.publication.findUnique({
+      where: { id: publicationId },
+    });
+
+    if (!publication) {
+      throw new BadRequestException('Publication not found');
+    }
+
+    await this.prisma.publication.delete({
+      where: { id: publicationId },
+    });
+
+    return { message: 'Publication has been deleted successfully.' };
+  }
+
   async getLatestPublications(take: number = 8) {
     const publications = await this.prisma.publication.findMany({
       where: { isActive: true },
@@ -276,6 +279,55 @@ export class PublicationService {
 
     return { data: publicationsWithReactions };
   }
+
+  // async featurePublication(
+  //   pubId: string,
+  //   userId: string,
+  //   priority = 1,
+  //   expiresAt?: Date,
+  // ) {
+  //   const publication = await this.prisma.publication.findUnique({
+  //     where: { id: pubId },
+  //     select: { id: true, isPublished: true, isActive: true },
+  //   });
+
+  //   if (!publication) {
+  //     throw new NotFoundException('Publication not found.');
+  //   }
+
+  //   if (!publication.isActive) {
+  //     throw new BadRequestException(
+  //       'Only published publications can be featured.',
+  //     );
+  //   }
+
+  //   return this.prisma.featuredPublication.upsert({
+  //     where: { publicationId: pubId },
+  //     update: {
+  //       featuredById: userId,
+  //       featuredAt: new Date(),
+  //       priority,
+  //       expiresAt,
+  //     },
+  //     create: {
+  //       publicationId: pubId,
+  //       featuredById: userId,
+  //       priority,
+  //       expiresAt,
+  //     },
+  //     include: { publication: true },
+  //   });
+  // }
+
+  // async unfeaturePublication(pubId: string) {
+  //   try {
+  //     return await this.prisma.featuredPublication.delete({
+  //       where: { publicationId: pubId },
+  //     });
+  //   } catch {
+  //     throw new NotFoundException('This publication is not featured.');
+  //   }
+  // }
 
   async getLatestIssues(take: number = 8) {
     return await this.prisma.issue.findMany({

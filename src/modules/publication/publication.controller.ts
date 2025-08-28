@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   Patch,
-  Request,
   Query,
   Put,
   HttpStatus,
@@ -22,7 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { UserType } from '../user/types/user.type';
 import { RolesGuard } from '../auth/guard/role.guard';
-import { Manuscript, ReactionType } from '@prisma/client';
+import { ReactionType } from '@prisma/client';
 import { User } from 'src/common/decorators/param-decorator/User.decorator';
 import { CreateVolumeDto } from './dto/create-volume.dto';
 import { UpdateVolumeDto } from './dto/update-volume.dto';
@@ -30,15 +29,20 @@ import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto } from './dto/update-issue.dto';
 import { PublishManuscriptDto } from './dto/publish-manuscript.dto';
 import { FetchPublicationDto } from './dto/Fetch-Publication-Dto';
-import { Throttle } from '@nestjs/throttler';
 import { UpdatePublicationDto } from './dto/update-published-manuscript.dto';
+import { FeaturePublicationDto } from './dto/feature-publication.dto';
+import { FeaturedPublicationService } from './featured-publication.service';
+import { FetchFeaturedPublicationsDTO } from './dto/fetch-featured-publication.dto';
 
 @ApiBearerAuth()
 @ApiTags('publication')
 @UseGuards(RolesGuard)
 @Controller({ path: 'publication', version: '1' })
 export class PublicationController {
-  constructor(private readonly publicationService: PublicationService) {}
+  constructor(
+    private readonly publicationService: PublicationService,
+    private readonly featuredPublicationService: FeaturedPublicationService,
+  ) {}
 
   @Post('publish')
   @Role(
@@ -98,7 +102,7 @@ export class PublicationController {
     const message = await this.publicationService.activatePublication(
       id,
       userId,
-    ); 
+    );
     return {
       statusCode: HttpStatus.OK,
       message,
@@ -113,11 +117,49 @@ export class PublicationController {
     const message = await this.publicationService.deactivatePublication(
       id,
       userId,
-    ); 
+    );
     return {
       statusCode: HttpStatus.OK,
       message,
     };
+  }
+
+  @Delete(':id')
+  async deletePublication(
+    @Param('id') id: string,
+    @User('userId') userId: string,
+  ) {
+    const message = await this.publicationService.deletePublication(id, userId);
+    return {
+      statusCode: HttpStatus.OK,
+      message,
+    };
+  }
+
+  @ApiTags('feature Manuscript')
+  @Post('feature')
+  async featurePublication(
+    @Body() dto: FeaturePublicationDto,
+    @User('userId') userId: string,
+  ) {
+    return this.featuredPublicationService.featurePublication(
+      dto.publicationId,
+      userId,
+      dto.priority,
+      dto.expiresAt ? new Date(dto.expiresAt) : undefined,
+    );
+  }
+  @ApiTags('feature Manuscript')
+  @Delete('feature')
+  async unfeaturePublication(@Param('publicationId') pubId: string) {
+    return this.featuredPublicationService.unfeaturePublication(pubId);
+  }
+
+  @Public()
+  @ApiTags('feature Manuscript')
+  @Get('featured')
+  async getFeaturedPublications(@Query() query: FetchFeaturedPublicationsDTO) {
+    return this.featuredPublicationService.getFeaturedPublications(query);
   }
 
   @Public()

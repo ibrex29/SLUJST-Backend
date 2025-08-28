@@ -6,7 +6,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class FetchDTO extends PaginationQueryDTO {
   @ApiPropertyOptional({
-    description: 'search users by name or email',
+    description: 'search by name or email',
     type: String,
   })
   @IsString()

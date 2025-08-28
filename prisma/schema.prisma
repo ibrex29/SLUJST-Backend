@@ -36,6 +36,8 @@ model User {
   Reply Reply[] @relation(name: "ReplyCreatedBy")
   createdPublication Publication[] @relation(name: "publication_created_by")
   updatedPublication Publication[] @relation(name: "publication_updated_by")
+
+  FeaturedPublication FeaturedPublication[]
 }
 
 model Author {
@@ -229,6 +231,22 @@ model Publication {
   Reactions Reaction[] @relation(name: "publication_reaction")
 
   @@index([title, abstract, keywords,Authors])
+  FeaturedPublication FeaturedPublication[]
+}
+
+model FeaturedPublication {
+  id             String       @id @default(uuid())
+  publicationId  String       @unique
+  publication    Publication  @relation(fields: [publicationId], references: [id])
+  
+  featuredById   String?
+  featuredBy     User?        @relation(fields: [featuredById], references: [id])
+  
+  featuredAt     DateTime     @default(now())
+  priority       Int          @default(1)
+  expiresAt      DateTime?
+
+  @@index([priority])
 }
 
 model Issue {

@@ -281,10 +281,19 @@ export class UserService {
       };
     }
 
-    if (sectionId) {
-      where.Editor = {
-        sectionId: sectionId,
-      };
+   if (sectionId) {
+      where.OR = [
+        {
+          Editor: {
+            sectionId: sectionId,
+          },
+        },
+        {
+          Reviewer: {
+            sectionId: sectionId,
+          },
+        },
+      ];
     }
 
     return this.prisma.paginate('User', {
