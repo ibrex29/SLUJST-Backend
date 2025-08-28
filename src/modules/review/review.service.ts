@@ -25,44 +25,6 @@ export class ReviewService {
     return reviewer;
   }
 
-  // async getManuscriptsAssignedToReviewer(reviewerId: string) {
-  //   try {
-  //     const manuscripts = await this.prisma.manuscriptReviewer.findMany({
-  //       where: { reviewerId },
-  //       include: {
-  //         manuscript: {
-  //           include: {
-  //             Author: true,
-  //             Document: true,
-  //             Reviewers: {
-  //               include: {
-  //                 reviewer: true,
-  //               },
-  //             },
-  //             Review: {
-  //               include: {
-  //                 Reviewer: {
-  //                   include: {
-  //                     User: true,
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         },
-  //       },
-  //     });
-  
-  //     if (!manuscripts.length) {
-  //       throw new NotFoundException(`No manuscripts assigned to reviewer with ID ${reviewerId}`);
-  //     }
-  
-  //     return manuscripts.map((assignment) => assignment.manuscript);
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(`Failed to retrieve assigned manuscripts: ${error.message}`);
-  //   }
-  // }
-
   async getManuscriptsAssignedToReviewer(reviewerId: string) {
     return await this.prisma.manuscript.findMany({
       where: {
@@ -99,16 +61,6 @@ export class ReviewService {
     });
   }
   
-  
-  // async getReviewerWithManuscripts(reviewerId: string) {
-  //   const reviewer = await this.prisma.reviewer.findUnique({
-  //     where: { id: reviewerId },
-  //     include: { Manuscript: { include: { Document: true } } },
-  //   });
-  //   if (!reviewer) throw new NotFoundException(`Reviewer with ID ${reviewerId} not found`);
-  //   return reviewer;
-  // }
-
   async getManuscriptsAssignedForLoggedInUser(userId: string) {
     const reviewer = await this.prisma.reviewer.findUnique({
       where: { userId },
@@ -166,7 +118,6 @@ export class ReviewService {
   
     return review;
   }
-
 
   async getAllReviews(): Promise<Review[]> {
     return this.prisma.review.findMany({
