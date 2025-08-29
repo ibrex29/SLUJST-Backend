@@ -54,7 +54,7 @@ jobs:
           name: dependencies
           path: .
 
-      - name: Set up SSH key
+      - name: Decode SSH key
         run: |
           echo "${{ secrets.SSH_KEY_B64 }}" | base64 -d > private_key
           chmod 600 private_key
