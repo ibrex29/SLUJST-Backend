@@ -3,8 +3,6 @@ import { PrismaModule } from 'prisma/prisma.module';
 import { ReviewController } from './review.controller';
 import { ReviewService } from './review.service';
 
-
-
 @Module({
   imports: [PrismaModule],
   controllers: [ReviewController],

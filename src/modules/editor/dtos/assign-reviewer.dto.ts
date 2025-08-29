@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDate, isDate, IsDateString, IsISO8601, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
-
+import { IsDateString, IsOptional, IsUUID } from 'class-validator';
 export class AssignReviewerDto {
   @ApiProperty({
     description: 'The unique ID of the manuscript to which the reviewer will be assigned',

@@ -1,10 +1,6 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateEditorDto } from './dtos/create-editor.dto';

@@ -5,7 +5,7 @@ import { CreateManuscriptDto } from './dto/create-manuscript.dto';
 import { RolesGuard } from '../auth/guard/role.guard';
 import { UserType } from '../user/types/user.type';
 import { Role} from 'src/common/constants/routes.constant'
-import {  Manuscript, Status } from '@prisma/client';
+import { Manuscript, Status } from '@prisma/client';
 import { AssignReviewerDto } from './dto/assign-reviewer.dto';
 import { AssignManuscriptToSectionDto } from './dto/assign-manuscript-to-section.dto';
 import { ManuscriptDto } from './dto/manuscript.dto';

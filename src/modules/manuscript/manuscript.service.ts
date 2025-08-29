@@ -365,7 +365,6 @@ export class ManuscriptService {
   async assignManuscriptToReviewers(dto: AssignReviewerDto) {
     const { manuscriptId, reviewerIds, reviewDueDate } = dto;
 
-    // 1. Validate manuscript
     const manuscript = await this.prisma.manuscript.findUnique({
       where: { id: manuscriptId },
       include: { Author: { include: { User: true } } },
@@ -377,7 +376,6 @@ export class ManuscriptService {
       );
     }
 
-    // 2. Validate reviewers
     const reviewers = await this.prisma.reviewer.findMany({
       where: { id: { in: reviewerIds } },
       include: { User: true },
@@ -389,7 +387,6 @@ export class ManuscriptService {
       );
     }
 
-    // 3. Transaction: assign reviewers + update manuscript status
     await this.prisma.$transaction([
       this.prisma.manuscriptReviewer.createMany({
         data: reviewerIds.map((reviewerId) => ({

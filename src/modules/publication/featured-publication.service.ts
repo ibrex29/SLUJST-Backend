@@ -64,7 +64,6 @@ async getFeaturedPublications(query: FetchFeaturedPublicationsDTO) {
 
   const where: Prisma.FeaturedPublicationWhereInput = {};
 
-  // 🔹 Apply search on related Publication
   if (search) {
     where.publication = {
       OR: [

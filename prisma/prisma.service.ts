@@ -1,5 +1,3 @@
-// src/prisma/prisma.service.ts
-
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { FetchDTO, PaginationResultDTO } from 'src/common/dto';

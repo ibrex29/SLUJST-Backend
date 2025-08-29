@@ -1,4 +1,3 @@
-// dto/fetch-featured-publications.dto.ts
 import { IsOptional, IsString, IsIn, IsEnum } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { FetchDTO } from 'src/common/dto';

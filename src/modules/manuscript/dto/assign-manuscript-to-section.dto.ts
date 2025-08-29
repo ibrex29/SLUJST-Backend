@@ -1,5 +1,3 @@
-// src/manuscript/dto/assign-manuscript-to-section.dto.ts
-
 import { IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 

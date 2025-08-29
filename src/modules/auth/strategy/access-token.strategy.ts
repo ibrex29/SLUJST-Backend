@@ -9,7 +9,7 @@ import { JwtPayload } from '../types';
 @Injectable()
 export class AccessTokenStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
-    private configService: ConfigService,
+    configService: ConfigService,
     private jwtTokenService: JwtTokenService,
   ) {
     super({

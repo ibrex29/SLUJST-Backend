@@ -94,7 +94,7 @@ export class ReviewController {
     return this.reviewService.hasReview(manuscriptId);
   }
 
-  @Put(':manuscriptId/final-remark')
+  @Post(':manuscriptId/final-remark')
   @ApiOperation({ summary: 'Submit final remark on a manuscript' })
   @ApiResponse({ status: 200, description: 'Final remark submitted successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden: Reviewer not assigned to this manuscript' })

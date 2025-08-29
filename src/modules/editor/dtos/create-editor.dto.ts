@@ -1,5 +1,3 @@
-// src/module/author/dto/create-author.dto.ts
-
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsEmail, isStrongPassword, IsString, MinLength, Matches } from 'class-validator';
 

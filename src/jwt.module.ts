@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { JwtModule, JwtService } from '@nestjs/jwt';
-
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
@@ -9,7 +8,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '1h' }, // Adjust token expiration as needed
+        signOptions: { expiresIn: '1h' }, 
       }),
       inject: [ConfigService],
     }),

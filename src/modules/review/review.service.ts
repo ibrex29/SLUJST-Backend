@@ -193,14 +193,13 @@ export class ReviewService {
   }
 
   async hasReview(manuscriptId: string): Promise<{ hasReview: boolean }> {
-    // Count the number of reviews for the given manuscript ID
+
     const reviewCount = await this.prisma.review.count({
       where: {
         manuscriptId: manuscriptId,
       },
     });
 
-    // Return true if there is at least one review, otherwise false
     return { hasReview: reviewCount > 0 };
   }
 
@@ -244,6 +243,4 @@ export class ReviewService {
       }),
     ]);
   }
-  
-
 }
