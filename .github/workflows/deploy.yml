@@ -6,8 +6,9 @@ on:
       - staging
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,62 +25,20 @@ jobs:
       - name: Build app
         run: yarn build
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist
-
-      - name: Upload package.json + yarn.lock
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependencies
-          path: |
-            package.json
-            yarn.lock
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist
-
-      - name: Download dependencies
-        uses: actions/download-artifact@v4
-        with:
-          name: dependencies
-          path: .
-
-      - name: Decode SSH key
+      - name: Setup SSH
         run: |
-          echo "${{ secrets.SSH_KEY_B64 }}" | base64 --decode > private_key
-          chmod 600 private_key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
 
-      - name: Deploy to Server via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key_path: private_key
-          port: 22
-          source: "dist/*, package.json, yarn.lock"
-          target: "/root/apps/backend/slujst-backend"
-          overwrite: true
-          strip_components: 0
-
-      - name: Restart app on server
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key_path: private_key
-          port: 22
-          script: |
-            cd /root/apps/backend/slujst-backend
+      - name: Deploy to server
+        run: |
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            cd /root/apps/backend/slujst-backend || mkdir -p /root/apps/backend/slujst-backend && cd /root/apps/backend/slujst-backend
+            git pull origin staging || echo "No git repo yet, skipping pull"
             mkdir -p .yarn_cache
             yarn install --production --frozen-lockfile --cache-folder .yarn_cache
             pm2 reload slujst-backend || pm2 start dist/main.js --name slujst-backend
+          EOF
