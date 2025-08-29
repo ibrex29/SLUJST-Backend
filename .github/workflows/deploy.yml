@@ -60,8 +60,11 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           source: "dist/*, package.json, yarn.lock"
           target: "/root/apps/backend/slujst-backend"
+          overwrite: true
+          strip_components: 0
 
       - name: Restart app on server
         uses: appleboy/ssh-action@v1.2.0
@@ -69,6 +72,7 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           script: |
             cd /root/apps/backend/slujst-backend
             mkdir -p .yarn_cache
