@@ -10,21 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Node.js (optional if you need Node locally in workflow)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "yarn"
 
+      # 3️⃣ Install dependencies & build
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
       - name: Build app
         run: yarn build
 
+      # 4️⃣ Setup SSH keys and known_hosts
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -33,9 +37,10 @@ jobs:
           echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
+      # 5️⃣ Deploy via SSH
       - name: Deploy to server
         run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             cd /root/apps/backend/slujst-backend || mkdir -p /root/apps/backend/slujst-backend && cd /root/apps/backend/slujst-backend
             git pull origin staging || echo "No git repo yet, skipping pull"
             mkdir -p .yarn_cache
