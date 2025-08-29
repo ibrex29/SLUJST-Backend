@@ -43,13 +43,16 @@ export class ReplyController {
     );
   }
 
-  @Post('reply')
-  @ApiOperation({ summary: 'Create a reply to a review' })
+  @Role(UserType.AUTHOR)
+  @Post('author')
+  @ApiOperation({ summary: 'author reply to a review' })
   async createReply(@Request() req, @Body() createReplyDto: CreateReplyDto) {
-    return this.replyService.createReply(req.user?.userId, createReplyDto);
+    return this.replyService.createAuthorReply(req.user?.userId, createReplyDto);
   }
 
-  @Post(':reviewId/replies')
+  @Role(UserType.REVIEWER)
+  @Post('reviewer')
+  @ApiOperation({ summary: 'reviewer reply to a review' })
   async createReviewerReply(
     @Request() req,
     @Body() createReplyDto: CreateReplyDto,

@@ -32,5 +32,5 @@ export class CreateReplyDto {
   })
   @IsOptional()
   @IsString()
-  uploadFiles?: string;  // This should be optional
+  uploadFiles?: string; 
 }
