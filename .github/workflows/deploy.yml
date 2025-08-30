@@ -33,7 +33,7 @@ jobs:
 
       - name: Pull and deploy on server
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             cd /root/apps/backend/slujst-backend
             git fetch origin staging
             git reset --hard origin/staging
