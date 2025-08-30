@@ -21,10 +21,10 @@ jobs:
       - name: Deploy via SSH and Git pull
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd /root/apps/backend/slujst-backend || mkdir -p /root/apps/backend/slujst-backend && cd /root/apps/backend/slujst-backend
-            git init
-            git remote add origin git@github.com:<YOUR_USERNAME>/<YOUR_REPO>.git || true
-            git fetch --all
+            cd /root/apps/backend/slujst-backend
+            git fetch origin staging
+            git reset --hard origin/staging
+            mkdir -p .yarn_cache
             git reset --hard origin/staging
             mkdir -p .yarn_cache
             yarn install --production --frozen-lockfile --cache-folder .yarn_cache
