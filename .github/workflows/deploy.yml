@@ -13,39 +13,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-
-      - name: Setup SSH
-        env:
-          SSH_KEY_B64: ${{ secrets.SLUJST_DEPLOY_KEY_B64 }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
+      - name: Set up SSH key from Base64
         run: |
-          echo "Setting up SSH..."
+          echo "$SLUJST_DEPLOY_KEY_B64" | base64 --decode > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Add GitHub to known hosts
+        run: |
           mkdir -p ~/.ssh
-          echo "$SSH_KEY_B64" | base64 --decode > ~/.ssh/slujst_deploy_key
-          chmod 600 ~/.ssh/slujst_deploy_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-          # Add server to known_hosts (avoid interactive prompt)
-          ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+      - name: Test SSH
+        run: ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no git@github.com
 
-          # Debug: show key length
-          echo "SSH key length (bytes): $(wc -c < ~/.ssh/slujst_deploy_key)"
-
-          # Fail fast if file is empty
-          if [ ! -s ~/.ssh/slujst_deploy_key ]; then
-            echo "ERROR: SSH key is empty!"
-            exit 1
-          fi
-
-          ls -al ~/.ssh
-
-      - name: Test SSH Connection
-        env:
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
+      - name: Deploy or Run Commands
         run: |
-          echo "Testing SSH connection..."
-          ssh -vvv -i ~/.ssh/slujst_deploy_key $SERVER_USER@$SERVER_IP "echo 'SSH connection successful!'"
+          # your deployment commands here
+
