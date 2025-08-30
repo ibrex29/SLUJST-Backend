@@ -8,25 +8,31 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Setup SSH
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "yarn"
+
+      - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
           echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Deploy via SSH and Git pull
-        run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd /root/apps/backend/slujst-backend
-            git fetch origin staging
-            git reset --hard origin/staging
-            mkdir -p .yarn_cache
-            git reset --hard origin/staging
-            mkdir -p .yarn_cache
-            yarn install --production --frozen-lockfile --cache-folder .yarn_cache
-            pm2 reload slujst-backend || pm2 start dist/main.js --name slujst-backend
+      - name: Pull and deploy
+        run: ssh -o StrictHostKeyChecking=yes ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          cd /root/apps/backend/slujst-backend
+          git fetch origin staging
+          git reset --hard origin/staging
+          mkdir -p .yarn_cache
+          yarn install --production --frozen-lockfile --cache-folder .yarn_cache
+          pm2 reload slujst-backend || pm2 start dist/main.js --name slujst-backend
           EOF
