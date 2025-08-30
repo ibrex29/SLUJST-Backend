@@ -13,27 +13,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug SSH key
-        run: |
-          echo "First 5 lines of key:"
-          head -n 5 ~/.ssh/slujst_deploy_key
-          echo "Last 5 lines of key:"
-          tail -n 5 ~/.ssh/slujst_deploy_key
-
       - name: Setup SSH
         run: |
           echo "Setting up SSH..."
           mkdir -p ~/.ssh
-          # Write the secret into a file and remove Windows carriage returns just in case
+          # Write the secret and remove carriage returns
           echo "$SLUJST_DEPLOY_KEY" | tr -d '\r' > ~/.ssh/slujst_deploy_key
           chmod 600 ~/.ssh/slujst_deploy_key
+      
+          # Add server to known_hosts
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+      
+          # Debug output
           echo "SSH setup done. Listing ~/.ssh contents:"
           ls -al ~/.ssh
-      
+          echo "First 5 lines of key:"
+          head -n 5 ~/.ssh/slujst_deploy_key
+          echo "Last 5 lines of key:"
+          tail -n 5 ~/.ssh/slujst_deploy_key
+          echo "Key permissions:"
+          stat -c "%a %n" ~/.ssh/slujst_deploy_key
+
       - name: Test SSH
         run: |
-          ssh -i ~/.ssh/slujst_deploy_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'SSH connection successful!'"
+          echo "Testing SSH connection..."
+          ssh -vvv -i ~/.ssh/slujst_deploy_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'SSH connection successful!'"
+      
+            
+      # - name: Test SSH
+      #   run: |
+      #     ssh -i ~/.ssh/slujst_deploy_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'SSH connection successful!'"
 
       - name: Deploy to server
         run: |
