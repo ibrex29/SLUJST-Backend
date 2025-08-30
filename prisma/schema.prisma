@@ -230,7 +230,7 @@ model Publication {
   comments           Comment[]   @relation(name: "publication_comments")
   Reactions Reaction[] @relation(name: "publication_reaction")
 
-  @@index([title, abstract, keywords,Authors])
+  @@index([title])
   FeaturedPublication FeaturedPublication[]
 }
 

@@ -24,7 +24,6 @@ export class ManuscriptService {
 
   async uploadManuscript(dto: CreateManuscriptDto, userId: string) {
     try {
-      // Check if the user exists
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
         include: { Author: true },
