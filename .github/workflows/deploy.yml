@@ -24,16 +24,16 @@ jobs:
         run: |
           echo "Setting up SSH..."
           mkdir -p ~/.ssh
+          # Write the secret into a file and remove Windows carriage returns just in case
           echo "$SLUJST_DEPLOY_KEY" | tr -d '\r' > ~/.ssh/slujst_deploy_key
           chmod 600 ~/.ssh/slujst_deploy_key
-          ssh-keyscan -H 203.161.43.7 >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
           echo "SSH setup done. Listing ~/.ssh contents:"
           ls -al ~/.ssh
-
-      - name: Test SSH connection
+      
+      - name: Test SSH
         run: |
-          echo "Testing SSH connection..."
-          ssh -i ~/.ssh/slujst_deploy_key root@203.161.43.7 "echo 'SSH connection successful!'"
+          ssh -i ~/.ssh/slujst_deploy_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'SSH connection successful!'"
 
       - name: Deploy to server
         run: |
