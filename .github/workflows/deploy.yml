@@ -17,7 +17,7 @@ jobs:
         run: |
           echo "Setting up SSH..."
           mkdir -p ~/.ssh
-          echo "$SLUJST_DEPLOY_KEY" > ~/.ssh/slujst_deploy_key
+          echo "$SLUJST_DEPLOY_KEY" | tr -d '\r' > ~/.ssh/slujst_deploy_key
           chmod 600 ~/.ssh/slujst_deploy_key
           ssh-keyscan -H 203.161.43.7 >> ~/.ssh/known_hosts
           echo "SSH setup done. Listing ~/.ssh contents:"
@@ -26,21 +26,21 @@ jobs:
       - name: Test SSH connection
         run: |
           echo "Testing SSH connection..."
-          ssh -i ~/.ssh/slujst_deploy_key -o StrictHostKeyChecking=no root@203.161.43.7 "echo 'SSH connection successful!'"
+          ssh -i ~/.ssh/slujst_deploy_key root@203.161.43.7 "echo 'SSH connection successful!'"
 
       - name: Deploy to server
         run: |
           echo "Starting deployment..."
-          ssh -i ~/.ssh/slujst_deploy_key -o StrictHostKeyChecking=no root@203.161.43.7 << 'EOF'
-            echo "Connected to server. Current directory: $(pwd)"
+          ssh -i ~/.ssh/slujst_deploy_key root@203.161.43.7 << 'EOF'
+            set -e
             cd /root/apps/backend/slujst-backend
-            echo "Pulling latest code..."
+            echo "Fetching latest code from staging..."
             git fetch origin staging
             git reset --hard origin/staging
             echo "Installing dependencies..."
             mkdir -p .yarn_cache
             yarn install --production --frozen-lockfile --cache-folder .yarn_cache
-            echo "Restarting PM2 process..."
+            echo "Restarting backend with PM2..."
             pm2 reload slujst-backend || pm2 start dist/main.js --name slujst-backend
-            echo "Deployment finished."
+            echo "Deployment completed successfully!"
           EOF
