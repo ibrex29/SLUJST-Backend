@@ -13,6 +13,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug SSH key
+        run: |
+          echo "First 5 lines of key:"
+          head -n 5 ~/.ssh/slujst_deploy_key
+          echo "Last 5 lines of key:"
+          tail -n 5 ~/.ssh/slujst_deploy_key
+
       - name: Setup SSH
         run: |
           echo "Setting up SSH..."
