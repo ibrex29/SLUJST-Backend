@@ -8,17 +8,21 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH and Deploy
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ secrets.SERVER_IP }} << 'EOF'
+          echo "$SLUJST_DEPLOY_KEY" > ~/.ssh/slujst_deploy_key
+          chmod 600 ~/.ssh/slujst_deploy_key
+          ssh-keyscan -H 203.161.43.7 >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          ssh -i ~/.ssh/slujst_deploy_key root@203.161.43.7 << 'EOF'
             cd /root/apps/backend/slujst-backend
             git fetch origin staging
             git reset --hard origin/staging
