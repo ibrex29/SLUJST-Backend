@@ -10,53 +10,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      # 3️⃣ Setup SSH with the base64-encoded private key
       - name: Setup SSH
         run: |
           echo "Setting up SSH..."
           mkdir -p ~/.ssh
-          # Write the secret and remove carriage returns
-          echo "$SLUJST_DEPLOY_KEY" | tr -d '\r' > ~/.ssh/slujst_deploy_key
+          echo "$SLUJST_DEPLOY_KEY_B64" | base64 --decode > ~/.ssh/slujst_deploy_key
           chmod 600 ~/.ssh/slujst_deploy_key
-      
-          # Add server to known_hosts
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-      
-          # Debug output
           echo "SSH setup done. Listing ~/.ssh contents:"
           ls -al ~/.ssh
-          echo "First 5 lines of key:"
-          head -n 5 ~/.ssh/slujst_deploy_key
-          echo "Last 5 lines of key:"
-          tail -n 5 ~/.ssh/slujst_deploy_key
-          echo "Key permissions:"
-          stat -c "%a %n" ~/.ssh/slujst_deploy_key
 
-      - name: Test SSH
+      # 4️⃣ Test SSH connection
+      - name: Test SSH connection
         run: |
-          echo "Testing SSH connection..."
-          ssh -vvv -i ~/.ssh/slujst_deploy_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'SSH connection successful!'"
-      
-            
-      # - name: Test SSH
-      #   run: |
-      #     ssh -i ~/.ssh/slujst_deploy_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'SSH connection successful!'"
+          ssh -i ~/.ssh/slujst_deploy_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'SSH connection successful!'"
 
+      # 5️⃣ Deploy the app via SSH
       - name: Deploy to server
         run: |
-          echo "Starting deployment..."
-          ssh -i ~/.ssh/slujst_deploy_key root@203.161.43.7 << 'EOF'
-            set -e
+          ssh -i ~/.ssh/slujst_deploy_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            echo "Deploying backend..."
             cd /root/apps/backend/slujst-backend
-            echo "Fetching latest code from staging..."
             git fetch origin staging
             git reset --hard origin/staging
-            echo "Installing dependencies..."
             mkdir -p .yarn_cache
             yarn install --production --frozen-lockfile --cache-folder .yarn_cache
-            echo "Restarting backend with PM2..."
             pm2 reload slujst-backend || pm2 start dist/main.js --name slujst-backend
-            echo "Deployment completed successfully!"
+            echo "Deployment complete."
           EOF
