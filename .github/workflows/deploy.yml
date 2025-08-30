@@ -22,11 +22,12 @@ jobs:
 
       - name: Pull and deploy
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd /root/apps/backend/slujst-backend
-            git fetch origin staging
-            git reset --hard origin/staging
-            mkdir -p .yarn_cache
-            yarn install --production --frozen-lockfile --cache-folder .yarn_cache
-            pm2 reload slujst-backend || pm2 start dist/src/main.js --name slujst-backend
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          cd /root/apps/backend/slujst-backend
+          git fetch origin staging
+          git reset --hard origin/staging
+          mkdir -p .yarn_cache
+          yarn install --production --frozen-lockfile --cache-folder .yarn_cache
+          pm2 reload slujst-backend || pm2 start dist/main.js --name slujst-backend
           EOF
+
