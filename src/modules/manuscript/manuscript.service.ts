@@ -63,16 +63,16 @@ export class ManuscriptService {
           },
         });
 
-        // await this.mailService.sendMail({
-        //   to: user.email,
-        //   subject: 'Manuscript Submission Confirmation',
-        //   template: 'author-submission_confirmation',
-        //   context: {
-        //     authorName: user.firstName,
-        //     manuscriptTitle: manuscript.title,
-        //     year: new Date().getFullYear(),
-        //   },
-        // });
+        await this.mailService.sendMail({
+          to: user.email,
+          subject: 'Manuscript Submission Confirmation',
+          template: 'author-submission_confirmation',
+          context: {
+            authorName: user.firstName,
+            manuscriptTitle: manuscript.title,
+            year: new Date().getFullYear(),
+          },
+        });
 
         return manuscript;
       });
@@ -405,7 +405,7 @@ export class ManuscriptService {
       ? new Date(reviewDueDate).toISOString().split('T')[0]
       : undefined;
 
-    // this.sendReviewAssignmentEmails(manuscript, reviewers, formattedDueDate);
+    this.sendReviewAssignmentEmails(manuscript, reviewers, formattedDueDate);
 
     return {
       message: `Reviewers assigned successfully. Manuscript status updated to "${Status.UNDER_REVIEW}".`,
@@ -477,12 +477,12 @@ export class ManuscriptService {
 
     const { email, firstName } = manuscript.Author.User;
 
-    // await this.mailService.sendManuscriptDecisionEmail(
-    //   email,
-    //   firstName,
-    //   manuscript.title,
-    //   'Accepted'
-    // );
+    await this.mailService.sendManuscriptDecisionEmail(
+      email,
+      firstName,
+      manuscript.title,
+      'Accepted'
+    );
 
     return manuscript;
   }
@@ -505,12 +505,12 @@ export class ManuscriptService {
 
     const { email, firstName } = manuscript.Author.User;
 
-    // await this.mailService.sendManuscriptDecisionEmail(
-    //   email,
-    //   firstName,
-    //   manuscript.title,
-    //   'Rejected',
-    //   rejectionReason
-    // );
+    await this.mailService.sendManuscriptDecisionEmail(
+      email,
+      firstName,
+      manuscript.title,
+      'Rejected',
+      rejectionReason
+    );
   }
 }

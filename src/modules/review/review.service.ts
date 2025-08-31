@@ -105,16 +105,16 @@ export class ReviewService {
       },
     });
   
-    // if (manuscript.Author.User.email) {
-    //   await this.mailService.sendManuscriptReviewCompletionEmail(
-    //     manuscript.Author.User.email,
-    //     manuscript.Author.User.firstName,
-    //     manuscript.title,
-    //     'A Reviewer',
-    //     comments,
-    //     recommendation
-    //   );
-    // }
+    if (manuscript.Author.User.email) {
+      await this.mailService.sendManuscriptReviewCreationEmail(
+        manuscript.Author.User.email,
+        manuscript.Author.User.firstName,
+        manuscript.title,
+        'A Reviewer',
+        comments,
+        recommendation
+      );
+    }
   
     return review;
   }

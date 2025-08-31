@@ -134,7 +134,7 @@ export class MailService {
     await this.sendMail(options);
   }
 
-  async sendManuscriptReviewCompletionEmail(
+  async sendManuscriptReviewCreationEmail(
     authorEmail: string,
     authorName: string,
     manuscriptTitle: string,
