@@ -22,7 +22,43 @@ export class ReplyService {
     });
   }
 
-  async getReviewsByManuscript(manuscriptId: string): Promise<Review[]> {
+  async getReviewerIdForLoggedUser(userId: string) {
+    const reviewer = await this.prisma.reviewer.findUnique({
+      where: { userId },
+    });
+    if (!reviewer)
+      throw new NotFoundException(`Reviewer with User ID ${userId} not found`);
+    return reviewer.id;
+  }
+
+  // async getReviewsByManuscript(manuscriptId: string): Promise<Review[]> {
+  //   return this.prisma.review.findMany({
+  //     where: { manuscriptId },
+  //     include: { Reply: true },
+  //   });
+  // }
+
+  async getReviewsByManuscript(
+    manuscriptId: string,
+    userId?: string,
+  ): Promise<Review[]> {
+    if (userId) {
+      // Get the reviewer's ID
+      const reviewerId = await this.getReviewerIdForLoggedUser(userId);
+
+      // Fetch only the review for this reviewer
+      const review = await this.prisma.review.findFirst({
+        where: {
+          manuscriptId,
+          reviewerId,
+        },
+        include: { Reply: true },
+      });
+
+      // Return empty array if no review found
+      return review ? [review] : [];
+    }
+
     return this.prisma.review.findMany({
       where: { manuscriptId },
       include: { Reply: true },

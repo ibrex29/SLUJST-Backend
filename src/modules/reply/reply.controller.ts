@@ -14,6 +14,7 @@ import { CreateReplyDto } from './dto/reply.dto';
 import { Review } from '@prisma/client';
 import { Role } from 'src/common/constants/routes.constant';
 import { UserType } from '../user/types/user.type';
+import { User } from 'src/common/decorators/param-decorator/User.decorator';
 
 @ApiBearerAuth()
 @ApiTags('reply')
@@ -37,9 +38,11 @@ export class ReplyController {
   })
   async getReviewsByManuscriptId(
     @Param('manuscriptId') manuscriptId: string,
+    @User("userId") userId?: string,
   ): Promise<Review[]> {
     return this.replyService.getReviewsByManuscript(
       manuscriptId,
+      userId
     );
   }
 
