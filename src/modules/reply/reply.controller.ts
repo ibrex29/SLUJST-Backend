@@ -38,19 +38,30 @@ export class ReplyController {
   })
   async getReviewsByManuscriptId(
     @Param('manuscriptId') manuscriptId: string,
-    @User("userId") userId?: string,
+    @User('userId') userId?: string,
   ): Promise<Review[]> {
-    return this.replyService.getReviewsByManuscript(
-      manuscriptId,
-      userId
-    );
+    return this.replyService.getReviewsByManuscript(manuscriptId, userId);
+  }
+
+  @Role(UserType.AUTHOR)
+  @Get('manuscript-author/:manuscriptId')
+  @ApiOperation({
+    summary: 'Get all reviews for a specific manuscript by its ID',
+  })
+  async getReviewsByManuscriptIdForAuthor(
+    @Param('manuscriptId') manuscriptId: string,
+  ): Promise<Review[]> {
+    return this.replyService.getReviewsByManuscriptIdForAuthor(manuscriptId);
   }
 
   @Role(UserType.AUTHOR)
   @Post('author')
   @ApiOperation({ summary: 'author reply to a review' })
   async createReply(@Request() req, @Body() createReplyDto: CreateReplyDto) {
-    return this.replyService.createAuthorReply(req.user?.userId, createReplyDto);
+    return this.replyService.createAuthorReply(
+      req.user?.userId,
+      createReplyDto,
+    );
   }
 
   @Role(UserType.REVIEWER)

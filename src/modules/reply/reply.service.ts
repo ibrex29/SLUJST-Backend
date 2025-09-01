@@ -65,6 +65,22 @@ export class ReplyService {
     });
   }
 
+  async getReviewsByManuscriptIdForAuthor(
+    manuscriptId: string,
+  ): Promise<Review[]> {
+    const review = await this.prisma.review.findFirst({
+      where: {
+        manuscriptId,
+      },
+      include: { Reply: true },
+    });
+
+    return this.prisma.review.findMany({
+      where: { manuscriptId },
+      include: { Reply: true },
+    });
+  }
+
   async createAuthorReply(userId: string, dto: CreateReplyDto): Promise<Reply> {
     const { reviewId, subject, contents, uploadFiles } = dto;
 
