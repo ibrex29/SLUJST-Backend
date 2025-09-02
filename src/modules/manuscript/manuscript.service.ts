@@ -361,56 +361,62 @@ export class ManuscriptService {
     });
   }
 
-  async assignManuscriptToReviewers(dto: AssignReviewerDto) {
-    const { manuscriptId, reviewerIds, reviewDueDate } = dto;
+async assignManuscriptToReviewers(dto: AssignReviewerDto) {
+  const { manuscriptId, reviewerIds, reviewDueDate } = dto;
 
-    const manuscript = await this.prisma.manuscript.findUnique({
-      where: { id: manuscriptId },
-      include: { Author: { include: { User: true } } },
-    });
+  const manuscript = await this.prisma.manuscript.findUnique({
+    where: { id: manuscriptId },
+    include: { Author: { include: { User: true } } },
+  });
 
-    if (!manuscript) {
-      throw new NotFoundException(
-        `Manuscript with ID "${manuscriptId}" not found.`,
-      );
-    }
-
-    const reviewers = await this.prisma.reviewer.findMany({
-      where: { id: { in: reviewerIds } },
-      include: { User: true },
-    });
-
-    if (reviewers.length !== reviewerIds.length) {
-      throw new BadRequestException(
-        `Some reviewer IDs are invalid. Expected ${reviewerIds.length}, found ${reviewers.length}.`,
-      );
-    }
-
-    await this.prisma.$transaction([
-      this.prisma.manuscriptReviewer.createMany({
-        data: reviewerIds.map((reviewerId) => ({
-          manuscriptId,
-          reviewerId,
-          dueDate: reviewDueDate ?? null,
-        })),
-        skipDuplicates: true,
-      }),
-      this.prisma.manuscript.update({
-        where: { id: manuscript.id },
-        data: { status: Status.UNDER_REVIEW },
-      }),
-    ]);
-
-    const formattedDueDate = reviewDueDate
-      ? new Date(reviewDueDate).toISOString().split('T')[0]
-      : undefined;
-
-    this.sendReviewAssignmentEmails(manuscript, reviewers, formattedDueDate);
-
-    return {
-      message: `Reviewers assigned successfully. Manuscript status updated to "${Status.UNDER_REVIEW}".`,
-    };
+  if (!manuscript) {
+    throw new NotFoundException(
+      `Manuscript with ID "${manuscriptId}" not found.`,
+    );
   }
+
+  const reviewers = await this.prisma.reviewer.findMany({
+    where: { id: { in: reviewerIds } },
+    include: { User: true },
+  });
+
+  if (reviewers.length !== reviewerIds.length) {
+    throw new BadRequestException(
+      `Some reviewer IDs are invalid. Expected ${reviewerIds.length}, found ${reviewers.length}.`,
+    );
+  }
+
+  const sectionId = reviewers[0].sectionId;
+
+  await this.prisma.$transaction([
+    this.prisma.manuscriptReviewer.createMany({
+      data: reviewerIds.map((reviewerId) => ({
+        manuscriptId,
+        reviewerId,
+        dueDate: reviewDueDate ?? null,
+      })),
+      skipDuplicates: true,
+    }),
+    this.prisma.manuscript.update({
+      where: { id: manuscript.id },
+      data: {
+        status: Status.UNDER_REVIEW,
+        sectionId,
+      },
+    }),
+  ]);
+
+  const formattedDueDate = reviewDueDate
+    ? new Date(reviewDueDate).toISOString().split("T")[0]
+    : undefined;
+
+  this.sendReviewAssignmentEmails(manuscript, reviewers, formattedDueDate);
+
+  return {
+    message: `Reviewers assigned successfully. Manuscript status updated to "${Status.UNDER_REVIEW}" and assigned to section "${sectionId}".`,
+  };
+}
+
 
   /**
    * Sends emails to reviewers and manuscript author.
