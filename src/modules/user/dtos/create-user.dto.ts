@@ -1,38 +1,73 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEmail,
+  IsString,
+  MinLength,
+  IsOptional,
+} from 'class-validator';
 import { UserType } from '../types/user.type';
-
 
 enum Title {
   Mr = 'Mr',
   Mrs = 'Mrs',
   Miss = 'Miss',
   Dr = 'Dr',
-  Prof = 'Prof'
+  Prof = 'Prof',
 }
 
 export class CreateUserDto {
-
-  @ApiProperty({ example: 'Mr', description: 'The title of the author', enum: Title })
+  @ApiProperty({
+    example: 'Mr',
+    description: 'The title of the author',
+    enum: Title,
+  })
   @IsOptional()
   title?: string;
-  
-  @ApiProperty({ example: 'john.doe@example.com', description: 'The email address of the author' })
+
+  @ApiProperty({ example: 'John', description: 'The first name of the author' })
+  @IsNotEmpty()
+  firstName: string;
+
+  @ApiProperty({ example: 'Doe', description: 'The last name of the author' })
+  @IsNotEmpty()
+  lastName: string;
+
+  @ApiProperty({
+    example: 'john.doe@example.com',
+    description: 'The email address of the author',
+  })
   @IsNotEmpty()
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'Fdsxb132456', description: 'The password of the author' })
+  @ApiProperty({ example: 'University of Example', description: 'The affiliation of the author' })
+  @IsNotEmpty()
+  affiliation: string;
+
+  @ApiProperty({ example: '+1234567890', description: 'The phone number of the author', required: false })
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
+
+  @ApiProperty({
+    example: 'Fdsxb132456',
+    description: 'The password of the author',
+  })
   @IsNotEmpty()
   @IsString()
-  @MinLength(8) 
+  @MinLength(8)
   password: string;
 
-  @ApiProperty({ example: 'Reviewer', description: 'The role of the user'})
+  @ApiProperty({ example: 'Reviewer', description: 'The role of the user' })
   @IsNotEmpty()
   roleName: UserType;
 
-  @ApiProperty({ example: 'sectionId', description: 'The ID of the section', required: false })
+  @ApiProperty({
+    example: 'sectionId',
+    description: 'The ID of the section',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   sectionId?: string;
