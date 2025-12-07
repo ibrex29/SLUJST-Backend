@@ -429,20 +429,38 @@ export class PublicationService {
     const { search, skip, limit } = filters;
 
     const publications = await this.prisma.$queryRaw<any[]>`
-      SELECT *, 
-        ts_rank_cd(
-          to_tsvector('english', lower(title || ' ' || abstract || ' ' || keywords)), 
-          plainto_tsquery('english', lower(${search}))
-        ) AS rank
-      FROM "Publication"
-      WHERE to_tsvector('english', lower(title || ' ' || abstract || ' ' || keywords))
+    SELECT *, 
+      ts_rank_cd(
+        to_tsvector(
+          'english', 
+          lower(
+            title || ' ' || 
+            abstract || ' ' || 
+            keywords || ' ' || 
+            array_to_string("Authors", ' ')
+          )
+        ), 
+        plainto_tsquery('english', lower(${search}))
+      ) AS rank
+    FROM "Publication"
+    WHERE 
+      to_tsvector(
+        'english', 
+        lower(
+          title || ' ' || 
+          abstract || ' ' || 
+          keywords || ' ' || 
+          array_to_string("Authors", ' ')
+        )
+      )
       @@ plainto_tsquery('english', lower(${search}))
       OR lower(title) LIKE '%' || lower(${search}) || '%'
       OR lower(abstract) LIKE '%' || lower(${search}) || '%'
       OR lower(keywords) LIKE '%' || lower(${search}) || '%'
-      ORDER BY rank DESC
-      LIMIT ${limit} OFFSET ${skip};
-    `;
+      OR lower(array_to_string("Authors", ' ')) LIKE '%' || lower(${search}) || '%'
+    ORDER BY rank DESC
+    LIMIT ${limit} OFFSET ${skip};
+  `;
 
     return { data: publications };
   }
