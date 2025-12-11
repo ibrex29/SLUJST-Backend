@@ -169,6 +169,7 @@ model Review {
   recommendation Recommendation
   authorId       String
   isClosed       Boolean         @default(false)
+  canAuthorView    Boolean         @default(false)
   Reply          Reply[]
 
   Author         Author     @relation(fields: [authorId], references: [id], onDelete: Cascade)

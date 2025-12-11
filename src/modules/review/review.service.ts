@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -13,7 +14,7 @@ import { MailService } from '../mail/mail.service';
 export class ReviewService {
   constructor(
     private prisma: PrismaService,
-    private mailService: MailService
+    private mailService: MailService,
   ) {}
 
   async findOne(id: string): Promise<Reviewer> {
@@ -21,7 +22,8 @@ export class ReviewService {
       where: { id },
       include: { User: true },
     });
-    if (!reviewer) throw new NotFoundException(`Reviewer with id ${id} not found`);
+    if (!reviewer)
+      throw new NotFoundException(`Reviewer with id ${id} not found`);
     return reviewer;
   }
 
@@ -30,13 +32,13 @@ export class ReviewService {
       where: {
         Reviewers: {
           some: {
-            reviewerId: reviewerId, 
+            reviewerId: reviewerId,
           },
         },
       },
       include: {
-        Author: true,       
-        Section: true,       
+        Author: true,
+        Section: true,
         Document: true,
         ActionLog: {
           include: {
@@ -49,23 +51,24 @@ export class ReviewService {
         },
         Review: {
           where: {
-            reviewerId: reviewerId, 
+            reviewerId: reviewerId,
           },
-        },    
+        },
         Reviewers: {
           include: {
-            reviewer: true, 
+            reviewer: true,
           },
         },
       },
     });
   }
-  
+
   async getManuscriptsAssignedForLoggedInUser(userId: string) {
     const reviewer = await this.prisma.reviewer.findUnique({
       where: { userId },
     });
-    if (!reviewer) throw new NotFoundException(`Reviewer with User ID ${userId} not found`);
+    if (!reviewer)
+      throw new NotFoundException(`Reviewer with User ID ${userId} not found`);
     return this.getManuscriptsAssignedToReviewer(reviewer.id);
   }
 
@@ -73,50 +76,97 @@ export class ReviewService {
     const reviewer = await this.prisma.reviewer.findUnique({
       where: { userId },
     });
-    if (!reviewer) throw new NotFoundException(`Reviewer with User ID ${userId} not found`);
+    if (!reviewer)
+      throw new NotFoundException(`Reviewer with User ID ${userId} not found`);
     return reviewer.id;
   }
 
   async createReview(userId: string, createReviewDto: CreateReviewDto) {
     const { manuscriptId, comments, recommendation } = createReviewDto;
     const reviewerId = await this.getReviewerIdForLoggedUser(userId);
-  
+
     const manuscript = await this.prisma.manuscript.findFirst({
       where: { id: manuscriptId },
       include: { Author: { include: { User: true } } },
     });
-  
+
     if (!manuscript) {
       throw new ForbiddenException(
         `Manuscript with ID ${manuscriptId} is not assigned to this reviewer`,
       );
     }
-  
+
     const review = await this.prisma.review.create({
       data: {
         manuscriptId,
         reviewerId,
         reviewDate: new Date(),
         comments,
+        canAuthorView: false,
         recommendation,
         authorId: manuscript.authorId,
         isClosed: false,
         createdByUserId: reviewerId,
       },
     });
-  
-    if (manuscript.Author.User.email) {
+
+    // if (manuscript.Author.User.email) {
+    //   await this.mailService.sendManuscriptReviewCreationEmail(
+    //     manuscript.Author.User.email,
+    //     manuscript.Author.User.firstName,
+    //     manuscript.title,
+    //     'A Reviewer',
+    //     comments,
+    //     recommendation,
+    //   );
+    // }
+
+    return review;
+  }
+
+  async allowAuthorToViewReview(reviewId: string, editorId: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+      include: {
+        Author: { include: { User: true } },
+        Manuscript: true,
+        Reviewer: true,
+      },
+    });
+
+    if (!review) {
+      throw new NotFoundException('Review not found');
+    }
+
+    if (review.canAuthorView) {
+      throw new BadRequestException('Author can already view this review');
+    }
+
+    const updatedReview = await this.prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        canAuthorView: true,
+        createdByUserId: editorId,
+      },
+    });
+
+    const authorEmail = review.Author?.User?.email;
+    const authorName = review.Author?.User?.firstName;
+    const title = review.Manuscript?.title;
+    const reviewerName = 'A Reviewer';
+
+    if (authorEmail) {
       await this.mailService.sendManuscriptReviewCreationEmail(
-        manuscript.Author.User.email,
-        manuscript.Author.User.firstName,
-        manuscript.title,
-        'A Reviewer',
-        comments,
-        recommendation
+        authorEmail,
+        authorName,
+        title,
+        reviewerName,
+        review.comments,
+        review.recommendation,
       );
     }
-  
-    return review;
+
+    return updatedReview;
   }
 
   async getAllReviews(): Promise<Review[]> {
@@ -135,23 +185,33 @@ export class ReviewService {
       where: { reviewId },
       include: { Author: true },
     });
-    if (!replies) throw new NotFoundException(`Replies for Review ID ${reviewId} not found`);
+    if (!replies)
+      throw new NotFoundException(
+        `Replies for Review ID ${reviewId} not found`,
+      );
     return replies;
   }
 
-  async acceptOrRejectManuscript(userId: string, dto: AcceptRejectManuscriptDto) {
+  async acceptOrRejectManuscript(
+    userId: string,
+    dto: AcceptRejectManuscriptDto,
+  ) {
     const { manuscriptId, status } = dto;
 
     const reviewer = await this.prisma.reviewer.findUnique({
       where: { userId },
     });
-    if (!reviewer) throw new ForbiddenException(`User with ID ${userId} is not a reviewer`);
+    if (!reviewer)
+      throw new ForbiddenException(`User with ID ${userId} is not a reviewer`);
 
     const manuscript = await this.prisma.manuscript.findUnique({
       where: { id: manuscriptId },
       include: { Reviewers: true },
     });
-    if (!manuscript) throw new NotFoundException(`Manuscript with ID ${manuscriptId} not found`);
+    if (!manuscript)
+      throw new NotFoundException(
+        `Manuscript with ID ${manuscriptId} not found`,
+      );
 
     // if (manuscript.reviewerId !== reviewer.id) {
     //   throw new ForbiddenException(
@@ -166,13 +226,16 @@ export class ReviewService {
   }
 
   async closeReview(reviewId: string): Promise<string> {
-    const review = await this.prisma.review.update({
-      where: { id: reviewId },
-      data: { isClosed: true },
-    }).catch(() => null);
+    const review = await this.prisma.review
+      .update({
+        where: { id: reviewId },
+        data: { isClosed: true },
+      })
+      .catch(() => null);
 
-    if (!review) throw new NotFoundException("Review not found or already closed.");
-    return "Review closed successfully.";
+    if (!review)
+      throw new NotFoundException('Review not found or already closed.');
+    return 'Review closed successfully.';
   }
 
   getAllRecommendations(): Recommendation[] {
@@ -193,7 +256,6 @@ export class ReviewService {
   }
 
   async hasReview(manuscriptId: string): Promise<{ hasReview: boolean }> {
-
     const reviewCount = await this.prisma.review.count({
       where: {
         manuscriptId: manuscriptId,
@@ -203,18 +265,23 @@ export class ReviewService {
     return { hasReview: reviewCount > 0 };
   }
 
-  async submitFinalRemark(userId: string, manuscriptId: string, recommendation: Recommendation,remark:string) {
+  async submitFinalRemark(
+    userId: string,
+    manuscriptId: string,
+    recommendation: Recommendation,
+    remark: string,
+  ) {
     const reviewerId = await this.getReviewerIdForLoggedUser(userId);
-  
+
     const manuscript = await this.prisma.manuscript.findFirst({
       where: {
         id: manuscriptId,
         Reviewers: {
-          some: { reviewerId: reviewerId }, 
+          some: { reviewerId: reviewerId },
         },
       },
     });
-  
+
     if (!manuscript) {
       throw new ForbiddenException(
         `Manuscript with ID ${manuscriptId} is not assigned to this reviewer`,
@@ -229,16 +296,15 @@ export class ReviewService {
         },
         data: {
           recommendation,
-          isClosed: true, 
+          isClosed: true,
         },
       }),
       this.prisma.actionLog.create({
         data: {
           manuscriptId,
           recommendation,
-          remark:remark,
-          createdByUserId: reviewerId, 
-
+          remark: remark,
+          createdByUserId: reviewerId,
         },
       }),
     ]);
