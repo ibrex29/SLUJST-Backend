@@ -1,4 +1,3 @@
-
 name: SLUJST Backend Deployment - Staging
 
 on:
@@ -14,28 +13,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2️⃣ Generate .env file from secrets & variables
-      - name: Generate env file
-        uses: SpicyPizza/create-envfile@v1.3
-        with:
-          envkey_PORT: ${{ vars.PORT }}
-          envkey_JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
-          envkey_JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
-          envkey_JWT_ACCESS_EXPIRY: ${{ vars.JWT_ACCESS_EXPIRY }}
-          envkey_HTTP_TIMEOUT: ${{ vars.HTTP_TIMEOUT }}
-          envkey_HTTP_MAX_REDIRECTS: ${{ vars.HTTP_MAX_REDIRECTS }}
-          envkey_JWT_REFRESH_EXPIRY: ${{ vars.JWT_REFRESH_EXPIRY }}
-          envkey_POSTGRES_USER: slujst_user
-          envkey_POSTGRES_PASSWORD: ${{ secrets.SLUJST_DB_PASSWORD }}
-          envkey_DATABASE_URL: postgresql://slujst_user:${{ secrets.SLUJST_DB_PASSWORD }}@localhost:5432/slujst_db
-          envkey_THROTTLE_TTL: ${{ vars.THROTTLE_TTL }}
-          envkey_THROTTLE_LIMIT: ${{ vars.THROTTLE_LIMIT }}
-          envkey_MAIL_HOST: ${{ vars.MAIL_HOST }}
-          envkey_MAIL_PORT: ${{ vars.MAIL_PORT }}
-          envkey_MAIL_USER: ${{ vars.MAIL_USER }}
-          envkey_MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-          envkey_MAIL_FROM: ${{ vars.MAIL_FROM }}
-          envkey_MAIL_TRANSPORT: ${{ vars.MAIL_TRANSPORT }}
+      # 2️⃣ Create .env file from secrets & variables
+      - name: Create .env file
+        run: |
+          cat <<EOF > /root/applications/backend/SLUJST-Backend/.env
+            PORT=${{ vars.PORT }}
+
+            DATABASE_URL=postgresql://slujst_user:${{ secrets.SLUJST_DB_PASSWORD }}@localhost:5432/slujst_db
+            POSTGRES_USER=slujst_user
+            POSTGRES_PASSWORD=${{ secrets.SLUJST_DB_PASSWORD }}
+            
+            HTTP_TIMEOUT=${{ vars.HTTP_TIMEOUT }}
+            HTTP_MAX_REDIRECTS=${{ vars.HTTP_MAX_REDIRECTS }}
+            
+            JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            JWT_ACCESS_EXPIRY=${{ vars.JWT_ACCESS_EXPIRY }}
+            JWT_REFRESH_EXPIRY=${{ vars.JWT_REFRESH_EXPIRY }}
+            
+            THROTTLE_TTL=${{ vars.THROTTLE_TTL }}
+            THROTTLE_LIMIT=${{ vars.THROTTLE_LIMIT }}
+            
+            MAIL_HOST=${{ vars.MAIL_HOST }}
+            MAIL_PORT=${{ vars.MAIL_PORT }}
+            MAIL_USER=${{ vars.MAIL_USER }}
+            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            MAIL_FROM=${{ vars.MAIL_FROM }}
+            MAIL_TRANSPORT=${{ vars.MAIL_TRANSPORT }}
+            
+            CONTACT_EMAIL=${{ vars.CONTACT_EMAIL }}
+            EOF
 
       # 3️⃣ Install Node.js dependencies
       - name: Install dependencies
@@ -56,4 +63,3 @@ jobs:
           pm2 stop slu-backend || true
           pm2 start dist/main.js --name slu-backend --watch --env production
           pm2 save
-
