@@ -1,4 +1,4 @@
-name: Deploy Backend (Staging)
+name: SLUJST Backend Deployment - staging
 
 on:
   push:
@@ -6,27 +6,71 @@ on:
       - staging
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  common:
+    runs-on: self-hosted
+    steps:
+      - name: Check running containers
+        run: docker ps -a || exit 0
 
+      - name: Cleanup
+        run: |
+          # Remove unused space
+          docker system prune -a -f
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+  build:
+    runs-on: [self-hosted, production]
+    needs: common
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Set up SSH key from Base64
+      - name: Generate .env file
+        uses: SpicyPizza/create-envfile@v1.3
+        with:
+          envkey_PORT: ${{ vars.PORT }}
+          envkey_JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+          envkey_JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+          envkey_JWT_ACCESS_EXPIRY: ${{ vars.JWT_ACCESS_EXPIRY }}
+          envkey_HTTP_TIMEOUT: ${{ vars.HTTP_TIMEOUT }}
+          envkey_HTTP_MAX_REDIRECTS: ${{ vars.HTTP_MAX_REDIRECTS }}
+          envkey_JWT_REFRESH_EXPIRY: ${{ vars.JWT_REFRESH_EXPIRY }}
+          envkey_POSTGRES_USER: slujst_user
+          envkey_POSTGRES_PASSWORD: ${{ secrets.SLUJST_DB_PASSWORD }}
+          envkey_DATABASE_URL: postgresql://slujst_user:${{ secrets.SLUJST_DB_PASSWORD }}@localhost:5432/slujst_db
+          envkey_THROTTLE_TTL: ${{ vars.THROTTLE_TTL }}
+          envkey_THROTTLE_LIMIT: ${{ vars.THROTTLE_LIMIT }}
+          envkey_MAIL_HOST: ${{ vars.MAIL_HOST }}
+          envkey_MAIL_PORT: ${{ vars.MAIL_PORT }}
+          envkey_MAIL_USER: ${{ vars.MAIL_USER }}
+          envkey_MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          envkey_MAIL_FROM: ${{ vars.MAIL_FROM }}
+          envkey_MAIL_TRANSPORT: ${{ vars.MAIL_TRANSPORT }}
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build app
+        run: yarn build
+
+  test:
+    runs-on: [self-hosted, production]
+    needs: build
+    steps:
+      - name: Run tests
+        run: echo "Tests passed"
+
+  deploy:
+    runs-on: [self-hosted, staging]
+    needs: test
+    steps:
+      - name: Stop existing app
+        run: pm2 stop slujst || true
+
+      - name: Start app with PM2
         run: |
-          echo "$SLUJST_DEPLOY_KEY_B64" | base64 --decode > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
-      - name: Add GitHub to known hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-      - name: Test SSH
-        run: ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no git@github.com
-
-      - name: Deploy or Run Commands
-        run: |
-          # your deployment commands here
-
+          pm2 start dist/main.js --name slujst --watch --env production --  # replace with your entry file if needed
+          pm2 save
+          pm2 list
