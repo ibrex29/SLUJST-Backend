@@ -1,4 +1,5 @@
-name: SLUJST Backend Deployment - staging
+
+name: SLUJST Backend Deployment - Staging
 
 on:
   push:
@@ -6,28 +7,15 @@ on:
       - staging
 
 jobs:
-  common:
+  deploy:
     runs-on: self-hosted
     steps:
-      - name: Check running containers
-        run: docker ps -a || exit 0
-
-      - name: Cleanup
-        run: |
-          # Remove unused space
-          docker system prune -a -f
-
+      # 1️⃣ Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
-  build:
-    runs-on: [self-hosted, production]
-    needs: common
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Generate .env file
+      # 2️⃣ Generate .env file from secrets & variables
+      - name: Generate env file
         uses: SpicyPizza/create-envfile@v1.3
         with:
           envkey_PORT: ${{ vars.PORT }}
@@ -49,28 +37,23 @@ jobs:
           envkey_MAIL_FROM: ${{ vars.MAIL_FROM }}
           envkey_MAIL_TRANSPORT: ${{ vars.MAIL_TRANSPORT }}
 
+      # 3️⃣ Install Node.js dependencies
       - name: Install dependencies
-        run: yarn install
+        run: |
+          cd /root/applications/backend/SLUJST-Backend
+          yarn install --frozen-lockfile
 
-      - name: Build app
-        run: yarn build
+      # 4️⃣ Build the project
+      - name: Build project
+        run: |
+          cd /root/applications/backend/SLUJST-Backend
+          yarn build
 
-  test:
-    runs-on: [self-hosted, production]
-    needs: build
-    steps:
-      - name: Run tests
-        run: echo "Tests passed"
-
-  deploy:
-    runs-on: [self-hosted, staging]
-    needs: test
-    steps:
-      - name: Stop existing app
-        run: pm2 stop slujst || true
-
+      # 5️⃣ Start / Restart app with PM2
       - name: Start app with PM2
         run: |
-          pm2 start dist/main.js --name slujst --watch --env production --  # replace with your entry file if needed
+          cd /root/applications/backend/SLUJST-Backend
+          pm2 stop slu-backend || true
+          pm2 start dist/main.js --name slu-backend --watch --env production
           pm2 save
-          pm2 list
+
