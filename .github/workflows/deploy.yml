@@ -1,9 +1,9 @@
-name: SLUJST Backend Deployment - Production
+name: SLUJST Backend Deployment - staging
 
 on:
   push:
     branches:
-      - production
+      - staging
 
 jobs:
   common:
@@ -31,11 +31,11 @@ jobs:
         uses: SpicyPizza/create-envfile@v1.3
         with:
           envkey_PORT: ${{ vars.PORT }}
-          envkey_HTTP_TIMEOUT: ${{ vars.HTTP_TIMEOUT }}
-          envkey_HTTP_MAX_REDIRECTS: ${{ vars.HTTP_MAX_REDIRECTS }}
           envkey_JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
           envkey_JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
           envkey_JWT_ACCESS_EXPIRY: ${{ vars.JWT_ACCESS_EXPIRY }}
+          envkey_HTTP_TIMEOUT: ${{ vars.HTTP_TIMEOUT }}
+          envkey_HTTP_MAX_REDIRECTS: ${{ vars.HTTP_MAX_REDIRECTS }}
           envkey_JWT_REFRESH_EXPIRY: ${{ vars.JWT_REFRESH_EXPIRY }}
           envkey_POSTGRES_USER: slujst_user
           envkey_POSTGRES_PASSWORD: ${{ secrets.SLUJST_DB_PASSWORD }}
@@ -48,21 +48,6 @@ jobs:
           envkey_MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           envkey_MAIL_FROM: ${{ vars.MAIL_FROM }}
           envkey_MAIL_TRANSPORT: ${{ vars.MAIL_TRANSPORT }}
-          envkey_SITE_URL: ${{ vars.SITE_URL }}
-          envkey_CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
-          envkey_AWS_ACCESS_KEY_ID: ${{ vars.AWS_ACCESS_KEY_ID }}
-          envkey_AWS_ACCESS_SECRET: ${{ secrets.AWS_ACCESS_SECRET }}
-          envkey_AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
-          envkey_AWS_S3_REGION: ${{ vars.AWS_S3_REGION }}
-          envkey_REDIS_HOST: ${{ vars.REDIS_HOST }}
-          envkey_REDIS_PORT: ${{ vars.REDIS_PORT }}
-          envkey_REDIS_PASS: ${{ secrets.REDIS_PASS }}
-          envkey_REDIS_SSL: ${{ vars.REDIS_SSL }}
-          envkey_ADMIN_USER_EMAIL: ${{ vars.ADMIN_USER_EMAIL }}
-          envkey_ADMIN_USER_PASSWORD: ${{ secrets.ADMIN_USER_PASSWORD }}
-          envkey_RMQ_URL: ${{ secrets.RMQ_URL }}
-          envkey_RMQ_QUEUE: ${{ vars.RMQ_QUEUE }}
-          envkey_SWAGGER_USER_PASSWORD: ${{ secrets.SWAGGER_USER_PASSWORD }}
 
       - name: Install dependencies
         run: yarn install
@@ -78,7 +63,7 @@ jobs:
         run: echo "Tests passed"
 
   deploy:
-    runs-on: [self-hosted, production]
+    runs-on: [self-hosted, staging]
     needs: test
     steps:
       - name: Stop existing app
