@@ -13,53 +13,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2️⃣ Create .env file from secrets & variables
-      - name: Create .env file
-        run: |
-          cat <<EOF > /root/applications/backend/SLUJST-Backend/.env
-            PORT=${{ vars.PORT }}
-
-            DATABASE_URL=postgresql://slujst_user:${{ secrets.SLUJST_DB_PASSWORD }}@localhost:5432/slujst_db
-            POSTGRES_USER=slujst_user
-            POSTGRES_PASSWORD=${{ secrets.SLUJST_DB_PASSWORD }}
-            
-            HTTP_TIMEOUT=${{ vars.HTTP_TIMEOUT }}
-            HTTP_MAX_REDIRECTS=${{ vars.HTTP_MAX_REDIRECTS }}
-            
-            JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}
-            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
-            JWT_ACCESS_EXPIRY=${{ vars.JWT_ACCESS_EXPIRY }}
-            JWT_REFRESH_EXPIRY=${{ vars.JWT_REFRESH_EXPIRY }}
-            
-            THROTTLE_TTL=${{ vars.THROTTLE_TTL }}
-            THROTTLE_LIMIT=${{ vars.THROTTLE_LIMIT }}
-            
-            MAIL_HOST=${{ vars.MAIL_HOST }}
-            MAIL_PORT=${{ vars.MAIL_PORT }}
-            MAIL_USER=${{ vars.MAIL_USER }}
-            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-            MAIL_FROM=${{ vars.MAIL_FROM }}
-            MAIL_TRANSPORT=${{ vars.MAIL_TRANSPORT }}
-            
-            CONTACT_EMAIL=${{ vars.CONTACT_EMAIL }}
-            EOF
-
-      # 3️⃣ Install Node.js dependencies
+      # 2️⃣ Install dependencies
       - name: Install dependencies
         run: |
           cd /root/applications/backend/SLUJST-Backend
           yarn install --frozen-lockfile
 
-      # 4️⃣ Build the project
+      # 3️⃣ Build the project
       - name: Build project
         run: |
           cd /root/applications/backend/SLUJST-Backend
           yarn build
 
-      # 5️⃣ Start / Restart app with PM2
-      - name: Start app with PM2
+      # 4️⃣ Start / Restart PM2 app
+      - name: Start / Restart PM2 app
         run: |
           cd /root/applications/backend/SLUJST-Backend
-          pm2 stop slu-backend || true
-          pm2 start dist/main.js --name slu-backend --watch --env production
+          pm2 stop slujst-backend || true
+          pm2 start dist/src/main.js --name slujst-backend --watch --env production
           pm2 save
