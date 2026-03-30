@@ -11,7 +11,7 @@ import { AssignManuscriptToSectionDto } from './dto/assign-manuscript-to-section
 import { ManuscriptDto } from './dto/manuscript.dto';
 import { ReviewerDto } from '../user/dtos/grouped-reviewers.dto';
 import { User } from 'src/common/decorators/param-decorator/User.decorator';
-import { FetchManuscriptDTO } from './dto/fetch-manuscript.dto';
+import { FetchManuscriptDTO, FetchSubmittedManuscriptsDto } from './dto/fetch-manuscript.dto';
 import { RejectManuscriptDto } from './dto/update-manuscript.dto';
 
 
@@ -90,12 +90,12 @@ export class ManuscriptController {
     return this.manuscriptService.assignManuscriptToReviewers(dto);
   }
   
-  @Role(UserType.EDITOR_IN_CHIEF,UserType.MANAGING_EDITOR)  
-  @Get('submitted')
-  @ApiOperation({ summary: 'List all submitted manuscripts' })
-  async listSubmitted(): Promise<Manuscript[]> {
-    return this.manuscriptService.listSubmittedManuscripts();
-  }
+// @Role(UserType.EDITOR_IN_CHIEF, UserType.MANAGING_EDITOR)
+@Get('submitted')
+@ApiOperation({ summary: 'List all submitted manuscripts' })
+async listSubmitted(@Query() query: FetchSubmittedManuscriptsDto) {
+  return this.manuscriptService.listSubmittedManuscripts(query);
+}
 
   @Get(':manuscriptId/details')
   @Role(UserType.EDITOR_IN_CHIEF,UserType.SECTION_EDITOR)

@@ -5,15 +5,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateManuscriptDto } from './dto/create-manuscript.dto';
-import { Manuscript, Reviewer, Status, User } from '@prisma/client';
+import { Manuscript, Prisma, Reviewer, Status, User } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { AssignReviewerDto } from './dto/assign-reviewer.dto';
 import { AssignManuscriptToSectionDto } from './dto/assign-manuscript-to-section.dto';
 import { ManuscriptDto } from './dto/manuscript.dto';
 import { ReviewerDto } from '../user/dtos/grouped-reviewers.dto';
 import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
-import { FetchManuscriptDTO } from './dto/fetch-manuscript.dto';
+import { FetchManuscriptDTO, FetchSubmittedManuscriptsDto } from './dto/fetch-manuscript.dto';
 import { MailService } from '../mail/mail.service';
+import { Order } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class ManuscriptService {
@@ -239,38 +240,70 @@ export class ManuscriptService {
     }));
   }
 
-  async listSubmittedManuscripts(): Promise<Manuscript[]> {
-    try {
-      return await this.prisma.manuscript.findMany({
-        where: { status: 'SUBMITTED' },
-        include: {
-          Author: true,
-          Reviewers: {
-            include: {
-              reviewer: true,
-            },
+async listSubmittedManuscripts(filters: FetchSubmittedManuscriptsDto) {
+  try {
+    const whereCondition: Prisma.ManuscriptWhereInput = {
+      status: 'SUBMITTED',
+      OR: filters.search
+        ? [
+            { title: { contains: filters.search, mode: 'insensitive' } },
+            { abstract: { contains: filters.search, mode: 'insensitive' } },
+            { keywords: { contains: filters.search, mode: 'insensitive' } },
+          ]
+        : undefined,
+      // sectionId: filters.sectionId ?? undefined,
+    };
+
+    const itemCount = await this.prisma.manuscript.count({
+      where: whereCondition,
+    });
+
+    const manuscripts = await this.prisma.manuscript.findMany({
+      where: whereCondition,
+      skip: filters.skip,
+      take: filters.limit,
+      orderBy: {
+        createdAt: filters.sortOrder === Order.DESC ? 'desc' : 'asc',
+      },
+      include: {
+        Author: true,
+        SuggestedReviewers: true,
+        Reviewers: {
+          include: {
+            reviewer: true,
           },
-          ActionLog: {
-            include: {
-              createdBy: {
-                include: {
-                  User: true,
-                },
+        },
+        ActionLog: {
+          include: {
+            createdBy: {
+              include: {
+                User: true,
               },
             },
           },
-          Review: true,
-          Document: true,
-          Section: true,
         },
-      });
-    } catch (error) {
-      console.error('Error listing submitted manuscripts:', error);
-      throw new InternalServerErrorException(
-        'Failed to list submitted manuscripts',
-      );
-    }
+        Review: true,
+        Document: true,
+        Section: true,
+      },
+    });
+
+    const paginationMetadata = new PaginationMetadataDTO({
+      pageOptionsDTO: filters,
+      itemCount,
+    });
+
+    return {
+      data: manuscripts,
+      meta: paginationMetadata,
+    };
+  } catch (error) {
+    console.error('Error listing submitted manuscripts:', error);
+    throw new InternalServerErrorException(
+      'Failed to list submitted manuscripts',
+    );
   }
+}
 
   async getManuscriptDetails(manuscriptId: string) {
     try {
