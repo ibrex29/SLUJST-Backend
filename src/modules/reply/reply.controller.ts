@@ -22,8 +22,8 @@ import { User } from 'src/common/decorators/param-decorator/User.decorator';
 @Controller({ path: 'reply', version: '1' })
 export class ReplyController {
   constructor(private readonly replyService: ReplyService) {}
-
-  @Role(UserType.AUTHOR)
+ 
+  @Role(UserType.AUTHOR) 
   @Get('review-message')
   @ApiOperation({
     summary: 'View reviews for manuscripts submitted by the logged-in author',
