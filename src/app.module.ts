@@ -20,6 +20,7 @@ import { PublicationModule } from './modules/publication/publication.module';
 import { MailModule } from './modules/mail/mail.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { BackupModule } from './backup/backup.module';
 
 @Module({
   imports: [
@@ -65,7 +66,8 @@ import { UploadModule } from './modules/upload/upload.module';
     PublicationModule,
     MailModule,
     AnalyticsModule,
-    UploadModule
+    UploadModule,
+    BackupModule
   ],
   controllers: [AppController],
   providers: [AppService],

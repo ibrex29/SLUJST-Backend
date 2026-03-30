@@ -87,6 +87,20 @@ model Section {
   reviewers   Reviewer[]  @relation("SectionReviewer") 
   editors     Editor[]    @relation("SectionEditors") 
 }
+model SuggestedReviewer {
+  id           String     @id @default(uuid())
+  name         String?
+  email        String?
+  phone        String?
+  affiliation  String?
+  manuscriptId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  Manuscript   Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+
+  @@index([manuscriptId])
+}
 
 model Manuscript {
   id                String     @id @default(uuid())
@@ -104,6 +118,7 @@ model Manuscript {
   createdBy         User?      @relation(fields: [createdByUserId], references: [id], name: "manuscript_created_by")
   updatedBy         User?      @relation(fields: [updatedByUserId], references: [id], name: "manuscript_updated_by")
   suggestedReviewer String?
+  SuggestedReviewers  SuggestedReviewer[]
   updatedAt         DateTime   @updatedAt
   isPublished       Boolean   @default(false)
   assigmentDate     DateTime?  @default(now())

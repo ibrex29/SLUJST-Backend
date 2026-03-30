@@ -16,7 +16,7 @@ export enum ManuscriptStatus {
     @IsOptional()
     readonly search?: string;
   
-    @ApiProperty({ example: "SUBMITTED", enum: ManuscriptStatus, description: "Filter manuscripts by status", required: false })
+    @ApiProperty({ example: ManuscriptStatus.SUBMITTED, enum: ManuscriptStatus, description: "Filter manuscripts by status", required: false })
     @IsEnum(ManuscriptStatus)
     @IsOptional()
     readonly status?: ManuscriptStatus;
