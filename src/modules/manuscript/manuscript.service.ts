@@ -3,6 +3,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { CreateManuscriptDto } from './dto/create-manuscript.dto';
 import { Manuscript, Prisma, Reviewer, Status, User } from '@prisma/client';
@@ -12,9 +13,14 @@ import { AssignManuscriptToSectionDto } from './dto/assign-manuscript-to-section
 import { ManuscriptDto } from './dto/manuscript.dto';
 import { ReviewerDto } from '../user/dtos/grouped-reviewers.dto';
 import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
-import { FetchManuscriptDTO, FetchSubmittedManuscriptsDto } from './dto/fetch-manuscript.dto';
+import {
+  FetchManuscriptDTO,
+  FetchSubmittedManuscriptsDto,
+} from './dto/fetch-manuscript.dto';
 import { MailService } from '../mail/mail.service';
 import { Order } from 'src/common/dto/pagination-query.dto';
+import * as bcrypt from 'bcrypt';
+import { AddAndAssignSuggestedReviewerDto } from './dto/add-and-assign-suggested-reviewer.dto';
 
 @Injectable()
 export class ManuscriptService {
@@ -240,70 +246,70 @@ export class ManuscriptService {
     }));
   }
 
-async listSubmittedManuscripts(filters: FetchSubmittedManuscriptsDto) {
-  try {
-    const whereCondition: Prisma.ManuscriptWhereInput = {
-      status: 'SUBMITTED',
-      OR: filters.search
-        ? [
-            { title: { contains: filters.search, mode: 'insensitive' } },
-            { abstract: { contains: filters.search, mode: 'insensitive' } },
-            { keywords: { contains: filters.search, mode: 'insensitive' } },
-          ]
-        : undefined,
-      // sectionId: filters.sectionId ?? undefined,
-    };
+  async listSubmittedManuscripts(filters: FetchSubmittedManuscriptsDto) {
+    try {
+      const whereCondition: Prisma.ManuscriptWhereInput = {
+        status: 'SUBMITTED',
+        OR: filters.search
+          ? [
+              { title: { contains: filters.search, mode: 'insensitive' } },
+              { abstract: { contains: filters.search, mode: 'insensitive' } },
+              { keywords: { contains: filters.search, mode: 'insensitive' } },
+            ]
+          : undefined,
+        // sectionId: filters.sectionId ?? undefined,
+      };
 
-    const itemCount = await this.prisma.manuscript.count({
-      where: whereCondition,
-    });
+      const itemCount = await this.prisma.manuscript.count({
+        where: whereCondition,
+      });
 
-    const manuscripts = await this.prisma.manuscript.findMany({
-      where: whereCondition,
-      skip: filters.skip,
-      take: filters.limit,
-      orderBy: {
-        createdAt: filters.sortOrder === Order.DESC ? 'desc' : 'asc',
-      },
-      include: {
-        Author: true,
-        SuggestedReviewers: true,
-        Reviewers: {
-          include: {
-            reviewer: true,
-          },
+      const manuscripts = await this.prisma.manuscript.findMany({
+        where: whereCondition,
+        skip: filters.skip,
+        take: filters.limit,
+        orderBy: {
+          createdAt: filters.sortOrder === Order.DESC ? 'desc' : 'asc',
         },
-        ActionLog: {
-          include: {
-            createdBy: {
-              include: {
-                User: true,
+        include: {
+          Author: true,
+          SuggestedReviewers: true,
+          Reviewers: {
+            include: {
+              reviewer: true,
+            },
+          },
+          ActionLog: {
+            include: {
+              createdBy: {
+                include: {
+                  User: true,
+                },
               },
             },
           },
+          Review: true,
+          Document: true,
+          Section: true,
         },
-        Review: true,
-        Document: true,
-        Section: true,
-      },
-    });
+      });
 
-    const paginationMetadata = new PaginationMetadataDTO({
-      pageOptionsDTO: filters,
-      itemCount,
-    });
+      const paginationMetadata = new PaginationMetadataDTO({
+        pageOptionsDTO: filters,
+        itemCount,
+      });
 
-    return {
-      data: manuscripts,
-      meta: paginationMetadata,
-    };
-  } catch (error) {
-    console.error('Error listing submitted manuscripts:', error);
-    throw new InternalServerErrorException(
-      'Failed to list submitted manuscripts',
-    );
+      return {
+        data: manuscripts,
+        meta: paginationMetadata,
+      };
+    } catch (error) {
+      console.error('Error listing submitted manuscripts:', error);
+      throw new InternalServerErrorException(
+        'Failed to list submitted manuscripts',
+      );
+    }
   }
-}
 
   async getManuscriptDetails(manuscriptId: string) {
     try {
@@ -526,4 +532,128 @@ async listSubmittedManuscripts(filters: FetchSubmittedManuscriptsDto) {
       rejectionReason,
     );
   }
-}
+
+  async addAndAssignSuggestedReviewer(dto: AddAndAssignSuggestedReviewerDto) {
+  const { suggestedReviewerId, sectionId, reviewDueDate } = dto;
+
+  // 3 independent lookups in parallel
+  const [suggested, section, reviewerRole] = await Promise.all([
+    this.prisma.suggestedReviewer.findUnique({
+      where: { id: suggestedReviewerId },
+      include: {
+        Manuscript: { include: { Author: { include: { User: true } } } },
+      },
+    }),
+    sectionId
+      ? this.prisma.section.findUnique({ where: { id: sectionId } })
+      : this.prisma.section.findFirst({ orderBy: { createdAt: 'asc' } }),
+    this.prisma.role.findUnique({ where: { roleName: 'reviewer' } }),
+  ]);
+
+  if (!suggested) throw new NotFoundException(`Suggested reviewer not found.`);
+  if (!suggested.email) throw new BadRequestException('Suggested reviewer has no email — cannot create a system account.');
+  if (!section) throw new NotFoundException('No section found in the system.');
+  if (!reviewerRole) throw new NotFoundException('Reviewer role not found in the system.');
+
+  return await this.prisma.$transaction(async (prisma) => {
+    const nameParts = (suggested.name ?? 'Reviewer').trim().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || '-';
+    const formattedDueDate = new Date(reviewDueDate).toISOString().split('T')[0];
+
+    // User + reviewer in a single query
+    const existingUser = await prisma.user.findUnique({
+      where: { email: suggested.email },
+      include: { Reviewer: true },
+    });
+    let reviewer = existingUser?.Reviewer ?? null;
+    let user = existingUser;
+
+    if (!user) {
+      const tempPassword = Math.random().toString(36).slice(-10) + 'A1!';
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+      user = await prisma.user.create({
+        data: {
+          email: suggested.email,
+          firstName,
+          lastName,
+          phoneNumber: suggested.phone || null,
+          password: hashedPassword,
+          createdBy: 'system',
+          updatedBy: '',
+          roles: { connect: { id: reviewerRole.id } },
+        },
+        include: { Reviewer: true },
+      });
+
+      reviewer = await prisma.reviewer.create({
+        data: {
+          userId: user.id,
+          sectionId: section.id,
+          expertiseArea: suggested.affiliation || '',
+        },
+      });
+
+      this.mailService.sendMail({
+        to: user.email,
+        subject: 'Your Reviewer Account – SLUJST',
+        template: 'reviewer_invitation',
+        context: {
+          reviewerName: firstName,
+          manuscriptTitle: suggested.Manuscript.title,
+          email: user.email,
+          temporaryPassword: tempPassword,
+          loginUrl: 'https://slujst.slu.edu.ng/signin',
+          year: new Date().getFullYear(),
+        },
+      }).catch((err) => console.error('Credentials email failed:', err));
+    }
+
+    if (!reviewer) {
+      throw new BadRequestException(
+        'User exists but has no reviewer record. Please check their account.',
+      );
+    }
+
+    // Run manuscript assignment + status update in parallel
+    await Promise.all([
+      prisma.manuscriptReviewer.upsert({
+        where: {
+          manuscriptId_reviewerId: {
+            manuscriptId: suggested.manuscriptId,
+            reviewerId: reviewer.id,
+          },
+        },
+        update: { dueDate: new Date(reviewDueDate) },
+        create: {
+          manuscriptId: suggested.manuscriptId,
+          reviewerId: reviewer.id,
+          dueDate: new Date(reviewDueDate),
+        },
+      }),
+      prisma.manuscript.update({
+        where: { id: suggested.manuscriptId },
+        data: { status: Status.UNDER_REVIEW, sectionId: section.id },
+      }),
+    ]);
+
+    this.mailService.sendManuscriptReviewInvitationEmail(
+      user.email,
+      user.firstName,
+      suggested.Manuscript.title,
+      formattedDueDate,
+    ).catch((err) => console.error('Invitation email failed:', err));
+
+    return {
+      message: 'Reviewer assigned to manuscript successfully.',
+      reviewer: {
+        userId: user.id,
+        reviewerId: reviewer.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+    };
+  });
+}}

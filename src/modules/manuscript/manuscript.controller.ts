@@ -13,6 +13,7 @@ import { ReviewerDto } from '../user/dtos/grouped-reviewers.dto';
 import { User } from 'src/common/decorators/param-decorator/User.decorator';
 import { FetchManuscriptDTO, FetchSubmittedManuscriptsDto } from './dto/fetch-manuscript.dto';
 import { RejectManuscriptDto } from './dto/update-manuscript.dto';
+import { AddAndAssignSuggestedReviewerDto } from './dto/add-and-assign-suggested-reviewer.dto';
 
 
 @ApiTags('manuscripts')
@@ -89,6 +90,14 @@ export class ManuscriptController {
   async assignManuscriptToReviewers(@Body() dto: AssignReviewerDto) {
     return this.manuscriptService.assignManuscriptToReviewers(dto);
   }
+
+  @Post('assign/suggested-reviewer')
+// @Role(UserType.EDITOR_IN_CHIEF, UserType.MANAGING_EDITOR)
+@ApiOperation({ summary: 'Add suggested reviewer as a system user and assign to manuscript' })
+@ApiCreatedResponse({ description: 'Reviewer created and assigned successfully.' })
+async addAndAssignSuggestedReviewer(@Body() dto: AddAndAssignSuggestedReviewerDto) {
+  return this.manuscriptService.addAndAssignSuggestedReviewer(dto);
+}
   
 // @Role(UserType.EDITOR_IN_CHIEF, UserType.MANAGING_EDITOR)
 @Get('submitted')
