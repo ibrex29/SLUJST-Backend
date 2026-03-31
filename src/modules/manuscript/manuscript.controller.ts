@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Request,Patch, UseGuards, Get, Param, Query } from '@nestjs/common'; 
+import { Controller, Post, Body, Request,Patch, UseGuards, Get, Param, Query, Delete, ParseUUIDPipe } from '@nestjs/common'; 
 import { ApiTags, ApiOperation, ApiCreatedResponse, ApiBadRequestResponse, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { ManuscriptService } from './manuscript.service';
 import { CreateManuscriptDto } from './dto/create-manuscript.dto';
@@ -14,6 +14,7 @@ import { User } from 'src/common/decorators/param-decorator/User.decorator';
 import { FetchManuscriptDTO, FetchSubmittedManuscriptsDto } from './dto/fetch-manuscript.dto';
 import { RejectManuscriptDto } from './dto/update-manuscript.dto';
 import { AddAndAssignSuggestedReviewerDto } from './dto/add-and-assign-suggested-reviewer.dto';
+import { UnassignReviewersDto } from './dto/unassign-reviewers.dto';
 
 
 @ApiTags('manuscripts')
@@ -97,6 +98,14 @@ export class ManuscriptController {
 @ApiCreatedResponse({ description: 'Reviewer created and assigned successfully.' })
 async addAndAssignSuggestedReviewer(@Body() dto: AddAndAssignSuggestedReviewerDto) {
   return this.manuscriptService.addAndAssignSuggestedReviewer(dto);
+}
+
+@Post(':manuscriptId/unassign-reviewers')
+async unassignReviewers(
+  @Param('manuscriptId', ParseUUIDPipe) manuscriptId: string,
+  @Body() dto: UnassignReviewersDto,
+) {
+  return this.manuscriptService.unassignReviewers(manuscriptId, dto);
 }
   
 // @Role(UserType.EDITOR_IN_CHIEF, UserType.MANAGING_EDITOR)
