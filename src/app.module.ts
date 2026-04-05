@@ -67,7 +67,7 @@ import { BackupModule } from './backup/backup.module';
     MailModule,
     AnalyticsModule,
     UploadModule,
-    BackupModule
+    // BackupModule
   ],
   controllers: [AppController],
   providers: [AppService],

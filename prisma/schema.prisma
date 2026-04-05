@@ -180,24 +180,43 @@ model Review {
   manuscriptId   String
   reviewerId     String?
   reviewDate     DateTime
-  comments       String
+  
+  // Author-visible comments (shown after editor approval)
+  comments       String?
+
+  // Confidential — never exposed to author
+  commentsForEditors String?
+
+  // Structured checklist stored as JSON
+  // Shape: ReviewChecklist (see types below)
+  checklist      Json?
+
   recommendation Recommendation
   authorId       String
   isClosed       Boolean         @default(false)
-  canAuthorView    Boolean         @default(false)
-  Reply          Reply[]
+  canAuthorView  Boolean         @default(false)
 
+  // Submission compliance fields
+  aiDeclarationConfirmed Boolean  @default(false)
+  notifyOnFinalStatus    Boolean  @default(false)
+
+  // Approval trail
+  approvedByEditorId String?
+  approvedAt         DateTime?
+
+  Reply          Reply[]
   Author         Author     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   Manuscript     Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
-  Reviewer       Reviewer?  @relation(fields: [reviewerId], references: [id], onDelete: SetNull) 
-  createdByUserId     String?
-  createdBy           Reviewer?   @relation(fields: [createdByUserId], references: [id], name: "review_created_by")
-
+  Reviewer       Reviewer?  @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  createdByUserId String?
+  createdBy       Reviewer?  @relation(fields: [createdByUserId], references: [id], name: "review_created_by")
 
   @@index([manuscriptId])
   @@index([reviewerId])
   @@index([authorId])
+  @@index([canAuthorView])
 }
+
 
 model Reply {
   id               String   @id @default(uuid())
@@ -375,4 +394,16 @@ enum EditorRole {
   ASSOCIATE_EDITOR
   PRODUCTION_EDITOR
   COPY_EDITOR
+}
+
+enum ChecklistValue {
+  YES
+  CAN_BE_IMPROVED
+  MUST_BE_IMPROVED
+  NOT_APPLICABLE
+}
+
+enum EnglishQuality {
+  NEEDS_IMPROVEMENT
+  FINE
 }
