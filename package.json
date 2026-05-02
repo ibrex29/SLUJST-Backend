@@ -38,7 +38,6 @@
     "@types/cache-manager-redis-store": "^2.0.4",
     "@types/compression": "^1.7.5",
     "axios": "^1.7.2",
-    "bcryptjsjs": "^2.4.3",
     "cache-manager": "^5.7.4",
     "cache-manager-redis-store": "^3.0.1",
     "class-transformer": "^0.5.1",
