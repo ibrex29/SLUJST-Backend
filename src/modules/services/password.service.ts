@@ -1,6 +1,6 @@
 // import { Inject, Injectable, Logger } from '@nestjs/common';
 // import { ConfigService } from '@nestjs/config';
-// import * as bcrypt from 'bcrypt';
+// import * as bcryptjs from 'bcryptjs';
 // import { PrismaService } from 'prisma/prisma.service';
 // import { SITE_URL } from 'src/common/constants';
 // import { CryptoService } from 'src/common/crypto/crypto.service';
@@ -44,7 +44,7 @@
 //         email: email,
 //       },
 //       data: {
-//         password: await bcrypt.hash(newPassword, 10),
+//         password: await bcryptjs.hash(newPassword, 10),
 //       },
 //     });
 //   }
@@ -56,7 +56,7 @@
 //         email: email,
 //       },
 //       data: {
-//         password: await bcrypt.hash(newPassword, 10),
+//         password: await bcryptjs.hash(newPassword, 10),
 //       },
 //     });
 //   }
@@ -100,7 +100,7 @@
 //         email: email,
 //       },
 //       data: {
-//         password: await bcrypt.hash(newPassword, 10),
+//         password: await bcryptjs.hash(newPassword, 10),
 //       },
 //     });
 

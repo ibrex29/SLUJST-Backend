@@ -9,7 +9,7 @@ import {
 import { Prisma, Author, Manuscript } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateAuthorDto } from './dtos/create-author.dto';
-import * as bcrypt from 'bcrypt';
+import * as bcryptjs from 'bcryptjs';
 import { UserType } from '../user/types/user.type';
 import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
 import { FetchManuscriptDTO } from '../manuscript/dto/fetch-manuscript.dto';
@@ -47,7 +47,7 @@ export class AuthorService {
       throw new ConflictException('Email address already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcryptjs.hash(password, 10);
 
     try {
       const createdUser = await this.prisma.user.create({

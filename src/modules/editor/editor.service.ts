@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateEditorDto } from './dtos/create-editor.dto';
-import * as bcrypt from 'bcrypt';
+import * as bcryptjs from 'bcryptjs';
 import { UserType } from '../user/types/user.type';
 import { AssignRoleByNameDto } from './dtos/assign-role-by-name.dto';
 
@@ -32,7 +32,7 @@ export class EditorService {
       throw new ConflictException('Email address already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcryptjs.hash(password, 10);
 
     const createdUser = await this.prisma.user.create({
       data: {

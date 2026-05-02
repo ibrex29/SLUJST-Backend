@@ -20,7 +20,7 @@ import {
 } from './dto/fetch-manuscript.dto';
 import { MailService } from '../mail/mail.service';
 import { Order } from 'src/common/dto/pagination-query.dto';
-import * as bcrypt from 'bcrypt';
+import * as bcryptjs from 'bcryptjs';
 import { AddAndAssignSuggestedReviewerDto } from './dto/add-and-assign-suggested-reviewer.dto';
 import { UnassignReviewersDto } from './dto/unassign-reviewers.dto';
 
@@ -598,7 +598,7 @@ export class ManuscriptService {
 
       if (!user) {
         const tempPassword = Math.random().toString(36).slice(-10) + 'A1!';
-        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+        const hashedPassword = await bcryptjs.hash(tempPassword, 10);
 
         user = await prisma.user.create({
           data: {

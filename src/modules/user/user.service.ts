@@ -7,7 +7,7 @@ import {
 import { EditorRole, Prisma, User } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { UserNotFoundException } from './exceptions/UserNotFound.exception';
-import * as bcrypt from 'bcrypt';
+import * as bcryptjs from 'bcryptjs';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UserType } from './types/user.type';
 import { GroupedReviewersDto } from './dtos/grouped-reviewers.dto';
@@ -151,7 +151,7 @@ export class UserService {
       throw new ConflictException('Email address already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcryptjs.hash(password, 10);
 
     if (!Object.values(UserType).includes(roleName as UserType)) {
       throw new BadRequestException('Invalid role name provided');

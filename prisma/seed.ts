@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
+import * as bcryptjs from 'bcryptjs';
 
 const prisma = new PrismaClient();
 enum UserType {
@@ -90,7 +90,7 @@ async function main() {
   });
 
   if (!existingChief) {
-    const hashedPassword = await bcrypt.hash('changeme123', 10);
+    const hashedPassword = await bcryptjs.hash('changeme123', 10);
 
     const chief = await prisma.user.create({
       data: {
