@@ -4,7 +4,7 @@ import { ManuscriptService } from './manuscript.service';
 import { CreateManuscriptDto } from './dto/create-manuscript.dto';
 import { RolesGuard } from '../auth/guard/role.guard';
 import { UserType } from '../user/types/user.type';
-import { Role} from 'src/common/constants/routes.constant'
+import { Public, Role} from 'src/common/constants/routes.constant'
 import { Manuscript, Status } from '@prisma/client';
 import { AssignReviewerDto } from './dto/assign-reviewer.dto';
 import { AssignManuscriptToSectionDto } from './dto/assign-manuscript-to-section.dto';
@@ -138,7 +138,6 @@ async listSubmitted(@Query() query: FetchSubmittedManuscriptsDto) {
     return this.manuscriptService.rejectManuscript(manuscriptId, userId, rejectManuscriptDto.reason);
   }
   
-  // @Public()
   @Get('status/:status')
   @Role(UserType.EDITOR_IN_CHIEF,UserType.SECTION_EDITOR,UserType.MANAGING_EDITOR)
   @ApiOperation({ summary: 'Get manuscripts by status' })
@@ -153,5 +152,16 @@ async listSubmitted(@Query() query: FetchSubmittedManuscriptsDto) {
   async getManuscriptsByStatus(@Param('status') status: Status) {
     return this.manuscriptService.getManuscriptsByStatus(status);
   }
+@Public()
+  @Get('dashboard/analytics')
+// @Role(
+//   UserType.EDITOR_IN_CHIEF,
+//   UserType.MANAGING_EDITOR,
+//   UserType.SECTION_EDITOR,
+// )
+@ApiOperation({ summary: 'Get dashboard analytics' })
+getDashboardAnalytics() {
+  return this.manuscriptService.getDashboardAnalytics();
+}
 
 }

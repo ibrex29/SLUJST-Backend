@@ -758,4 +758,103 @@ async unassignReviewers(
     unassigned: count,
   };
 }
+
+async getDashboardAnalytics() {
+  const [
+    totalSubmitted,
+    awaitingReview,
+    rejected,
+    approved,
+    recentSubmissions,
+  ] = await this.prisma.$transaction([
+    this.prisma.manuscript.count(),
+
+    this.prisma.manuscript.count({
+      where: {
+        status: 'UNDER_REVIEW',
+      },
+    }),
+
+    this.prisma.manuscript.count({
+      where: {
+        status: 'REJECTED',
+      },
+    }),
+
+    this.prisma.manuscript.count({
+      where: {
+        status: {
+          in: ['ACCEPTED', 'PUBLISHED'],
+        },
+      },
+    }),
+
+    this.prisma.manuscript.findMany({
+      take: 5,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        Author: {
+          include: {
+            User: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        Section: true,
+        Document: true,
+        _count: {
+          select: {
+            Reviewers: true,
+            Review: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const submittedOrPending = await this.prisma.manuscript.count({
+    where: {
+      status: 'SUBMITTED',
+    },
+  });
+
+  const totalManuscripts = totalSubmitted || 1;
+
+  return {
+    cards: {
+      totalSubmitted,
+      awaitingReview,
+      rejected,
+      approved,
+    },
+
+    pipeline: {
+      totalManuscripts: totalSubmitted,
+      submittedPending: {
+        count: submittedOrPending,
+        percentage: Number(((submittedOrPending / totalManuscripts) * 100).toFixed(1)),
+      },
+      underReview: {
+        count: awaitingReview,
+        percentage: Number(((awaitingReview / totalManuscripts) * 100).toFixed(1)),
+      },
+      acceptedApproved: {
+        count: approved,
+        percentage: Number(((approved / totalManuscripts) * 100).toFixed(1)),
+      },
+      rejected: {
+        count: rejected,
+        percentage: Number(((rejected / totalManuscripts) * 100).toFixed(1)),
+      },
+    },
+
+    recentSubmissions,
+  };
+}
 }
