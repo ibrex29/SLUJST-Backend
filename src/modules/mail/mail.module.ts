@@ -23,28 +23,27 @@ import { MailController } from './mail.controller';
       useFactory: async (configService: ConfigService) => ({
         transport: {
           host: configService.getOrThrow(MAIL_HOST),
-          port: configService.getOrThrow<number>(MAIL_PORT),
-          secure: false, // ✅ correct for most SMTP (e.g. Mailtrap)
+          port: Number(configService.getOrThrow(MAIL_PORT)),
+          secure: Number(configService.getOrThrow(MAIL_PORT)) === 465,
+
           auth: {
             user: configService.getOrThrow(MAIL_USER),
             pass: configService.getOrThrow(MAIL_PASSWORD),
           },
-          tls: {
-            rejectUnauthorized: false,
-          },
+
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+          socketTimeout: 10000,
+
+          tls: { rejectUnauthorized: false },
         },
         defaults: {
           from: `"No Reply" <${configService.getOrThrow(MAIL_FROM)}>`,
         },
         template: {
-          dir: join(
-            process.cwd(),
-            configService.getOrThrow(MAIL_TEMPLATE_DIR),
-          ),
+          dir: join(process.cwd(), configService.getOrThrow(MAIL_TEMPLATE_DIR)),
           adapter: new HandlebarsAdapter(),
-          options: {
-            strict: true,
-          },
+          options: { strict: true },
         },
       }),
     }),

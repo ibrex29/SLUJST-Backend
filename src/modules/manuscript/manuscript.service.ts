@@ -108,79 +108,98 @@ export class ManuscriptService {
     }
   }
 
-  async listAllManuscripts(
-    fetchManuscriptDto: FetchManuscriptDTO,
-  ): Promise<{ data: Manuscript[]; meta: PaginationMetadataDTO }> {
-    try {
-      const filters: any = {};
+async listAllManuscripts(
+  fetchManuscriptDto: FetchManuscriptDTO,
+): Promise<{ data: Manuscript[]; meta: PaginationMetadataDTO }> {
+  try {
+    const filters: any = {};
 
-      if (fetchManuscriptDto.status) {
-        filters.status = fetchManuscriptDto.status;
-      }
+    if (fetchManuscriptDto.status) {
+      filters.status = fetchManuscriptDto.status;
+    }
 
-      if (fetchManuscriptDto.search) {
-        filters.OR = [
-          {
-            title: { contains: fetchManuscriptDto.search, mode: 'insensitive' },
+    if (fetchManuscriptDto.search) {
+      filters.OR = [
+        {
+          title: {
+            contains: fetchManuscriptDto.search,
+            mode: 'insensitive',
           },
-          {
-            abstract: {
-              contains: fetchManuscriptDto.search,
-              mode: 'insensitive',
-            },
+        },
+        {
+          abstract: {
+            contains: fetchManuscriptDto.search,
+            mode: 'insensitive',
           },
-        ];
-      }
+        },
+      ];
+    }
 
-      const [itemCount, manuscripts] = await this.prisma.$transaction([
-        this.prisma.manuscript.count({ where: filters }),
-        this.prisma.manuscript.findMany({
-          where: filters,
-          include: {
-            Author: true,
-            Reviewers: {
-              include: {
-                reviewer: {
-                  include: {
-                    User: {
-                      select: {
-                        firstName: true,
-                        lastName: true,
-                        email: true,
-                        phoneNumber: true,
-                      },
+    const [itemCount, manuscripts] = await this.prisma.$transaction([
+      this.prisma.manuscript.count({ where: filters }),
+
+      this.prisma.manuscript.findMany({
+        where: filters,
+        include: {
+          Author: true,
+
+          Reviewers: {
+            include: {
+              reviewer: {
+                include: {
+                  User: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                      email: true,
+                      phoneNumber: true,
                     },
                   },
                 },
               },
             },
-            ActionLog: { include: { createdBy: { include: { User: true } } } },
-            Review: true,
-            Document: true,
-            Section: true,
-            SuggestedReviewers: true,
-            _count: { select: { Reviewers: true } },
           },
-          orderBy: { createdAt: fetchManuscriptDto.sortOrder },
-          skip: fetchManuscriptDto.skip,
-          take: fetchManuscriptDto.limit,
-        }),
-      ]);
 
-      return {
-        data: manuscripts,
-        meta: new PaginationMetadataDTO({
-          pageOptionsDTO: fetchManuscriptDto,
-          itemCount,
-        }),
-      };
-    } catch (error) {
-      console.error('Error listing paginated manuscripts:', error);
-      throw new InternalServerErrorException(
-        'Failed to list paginated manuscripts',
-      );
-    }
+          ActionLog: {
+            include: {
+              createdBy: {
+                include: { User: true },
+              },
+            },
+          },
+          Review: true,
+          Document: true,
+          Section: true,
+          SuggestedReviewers: true,
+
+          _count: {
+            select: { Reviewers: true },
+          },
+        },
+
+        orderBy: {
+          createdAt: fetchManuscriptDto.sortOrder,
+        },
+
+        skip: fetchManuscriptDto.skip,
+        take: fetchManuscriptDto.limit,
+      }),
+    ]);
+
+    return {
+      data: manuscripts,
+      meta: new PaginationMetadataDTO({
+        pageOptionsDTO: fetchManuscriptDto,
+        itemCount,
+      }),
+    };
+  } catch (error) {
+    console.error('Error listing paginated manuscripts:', error);
+    throw new InternalServerErrorException(
+      'Failed to list paginated manuscripts',
+    );
   }
+}
 
   async assignManuscriptToSection(
     assignManuscriptToSectionDto: AssignManuscriptToSectionDto,

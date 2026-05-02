@@ -9,128 +9,129 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(uuid())
+  id          String    @id @default(uuid())
   title       String?
   firstName   String
   lastName    String
   password    String
-  email       String      @unique
+  email       String    @unique
   phoneNumber String?
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   createdBy   String
   updatedBy   String
   Author      Author?
   Editor      Editor?
   Reviewer    Reviewer?
 
-
-  roles       Role[]      @relation("UserRoles")
-  publications Publication[]
-  reactions       Reaction[]
-  commentsCreated Comment[]  @relation(name: "comment_created_by")
-  commentsUpdated Comment[]  @relation(name: "comment_updated_by")
-  createManuscript Manuscript[] @relation(name: "manuscript_created_by")
-  updatedManuscript Manuscript[] @relation(name: "manuscript_updated_by")
-  Reply Reply[] @relation(name: "ReplyCreatedBy")
-  createdPublication Publication[] @relation(name: "publication_created_by")
-  updatedPublication Publication[] @relation(name: "publication_updated_by")
-
+  roles               Role[]                @relation("UserRoles")
+  publications        Publication[]
+  reactions           Reaction[]
+  commentsCreated     Comment[]             @relation(name: "comment_created_by")
+  commentsUpdated     Comment[]             @relation(name: "comment_updated_by")
+  createManuscript    Manuscript[]          @relation(name: "manuscript_created_by")
+  updatedManuscript   Manuscript[]          @relation(name: "manuscript_updated_by")
+  Reply               Reply[]               @relation(name: "ReplyCreatedBy")
+  createdPublication  Publication[]         @relation(name: "publication_created_by")
+  updatedPublication  Publication[]         @relation(name: "publication_updated_by")
+  approvedReviews     Review[]              @relation("review_approved_by")
   FeaturedPublication FeaturedPublication[]
 }
 
 model Author {
-  id            String        @id @default(uuid())
-  userId        String       @unique
-  affiliation   String
-  expertiseArea String
+  id                  String       @id @default(uuid())
+  userId              String       @unique
+  affiliation         String
+  expertiseArea       String
   higestQualification String?
-  reviewInterest Boolean?   @default(false)
-  User          User         @relation(fields: [userId], references: [id])
-  Manuscript    Manuscript[]
-  Reply         Reply[]
-  Review        Review[]
+  reviewInterest      Boolean?     @default(false)
+  User                User         @relation(fields: [userId], references: [id])
+  Manuscript          Manuscript[]
+  Reply               Reply[]
+  Review              Review[]
 }
 
 model Editor {
   id        String     @id @default(uuid())
   userId    String     @unique
   User      User       @relation(fields: [userId], references: [id])
-  sectionId     String?
-  Section       Section?  @relation("SectionEditors", fields: [sectionId], references: [id]) 
+  sectionId String?
+  Section   Section?   @relation("SectionEditors", fields: [sectionId], references: [id])
   role      EditorRole
+  Review    Review[]
 }
 
 model Reviewer {
-  id            String        @id @default(uuid())
-  userId        String       @unique
-  expertiseArea String
+  id                  String               @id @default(uuid())
+  userId              String               @unique
+  expertiseArea       String
   higestQualification String?
-  Review        Review[]
-  sectionId     String 
-  Section       Section?  @relation("SectionReviewer", fields: [sectionId], references: [id]) 
-  User          User         @relation(fields: [userId], references: [id])
-  ManuscriptReviewer ManuscriptReviewer[]
-  createdReview Review[] @relation(name: "review_created_by")
-  createdActionLog ActionLog[] @relation(name: "action_created_by")
+  Review              Review[]
+  sectionId           String
+  Section             Section?             @relation("SectionReviewer", fields: [sectionId], references: [id])
+  User                User                 @relation(fields: [userId], references: [id])
+  ManuscriptReviewer  ManuscriptReviewer[]
+  createdReview       Review[]             @relation(name: "review_created_by")
+  createdActionLog    ActionLog[]          @relation(name: "action_created_by")
 }
 
 model Section {
-  id          String      @id @default(uuid())
-  name        String      
-  createdAt         DateTime  @default(now())
-  createdBy         String
-  updatedAt         DateTime  @updatedAt
-  updatedBy         String
-  manuscripts Manuscript[] @relation("SectionManuscripts") 
-  reviewers   Reviewer[]  @relation("SectionReviewer") 
-  editors     Editor[]    @relation("SectionEditors") 
+  id          String       @id @default(uuid())
+  name        String
+  createdAt   DateTime     @default(now())
+  createdBy   String
+  updatedAt   DateTime     @updatedAt
+  updatedBy   String
+  manuscripts Manuscript[] @relation("SectionManuscripts")
+  reviewers   Reviewer[]   @relation("SectionReviewer")
+  editors     Editor[]     @relation("SectionEditors")
 }
+
 model SuggestedReviewer {
-  id           String     @id @default(uuid())
+  id           String   @id @default(uuid())
   name         String?
   email        String?
   phone        String?
   affiliation  String?
   manuscriptId String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  Manuscript   Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+  Manuscript Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
 
   @@index([manuscriptId])
 }
 
 model Manuscript {
-  id                String     @id @default(uuid())
-  title             String
-  abstract          String
-  keywords          String
-  authorName        String?
-  coAuthor          String?
-  status            Status
-  rejectionReason   String?
-  authorId          String?
-  createdAt         DateTime   @default(now())
-  createdByUserId   String?
-  updatedByUserId   String?
-  createdBy         User?      @relation(fields: [createdByUserId], references: [id], name: "manuscript_created_by")
-  updatedBy         User?      @relation(fields: [updatedByUserId], references: [id], name: "manuscript_updated_by")
-  suggestedReviewer String?
-  SuggestedReviewers  SuggestedReviewer[]
-  updatedAt         DateTime   @updatedAt
-  isPublished       Boolean   @default(false)
-  assigmentDate     DateTime?  @default(now())
-  reviewDueDate     DateTime?
-  sectionId         String?   
-  Author            Author?     @relation(fields: [authorId], references: [id])
-  Review            Review[]
-  Publication       Publication[]
-  Section           Section?   @relation("SectionManuscripts", fields: [sectionId], references: [id]) 
-  Document          Document[]
-  Reviewers         ManuscriptReviewer[]
-  ActionLog         ActionLog[]
+  id                 String               @id @default(uuid())
+  title              String
+  abstract           String
+  keywords           String
+  authorName         String?
+  coAuthor           String?
+  status             Status
+  rejectionReason    String?
+  authorId           String?
+  createdAt          DateTime             @default(now())
+  createdByUserId    String?
+  updatedByUserId    String?
+  createdBy          User?                @relation(fields: [createdByUserId], references: [id], name: "manuscript_created_by")
+  updatedBy          User?                @relation(fields: [updatedByUserId], references: [id], name: "manuscript_updated_by")
+  suggestedReviewer  String?
+  SuggestedReviewers SuggestedReviewer[]
+  updatedAt          DateTime             @updatedAt
+  isPublished        Boolean              @default(false)
+  assigmentDate      DateTime?            @default(now())
+  reviewDueDate      DateTime?
+  sectionId          String?
+  Author             Author?              @relation(fields: [authorId], references: [id])
+  Review             Review[]
+  Publication        Publication[]
+  Section            Section?             @relation("SectionManuscripts", fields: [sectionId], references: [id])
+  Document           Document[]
+  Reviewers          ManuscriptReviewer[]
+  ActionLog          ActionLog[]
 
   @@index([status])
   @@index([authorId])
@@ -138,14 +139,14 @@ model Manuscript {
 }
 
 model ManuscriptReviewer {
-  id            String     @id @default(uuid())
-  manuscriptId  String
-  reviewerId    String
-  assignedAt    DateTime   @default(now())
-  dueDate       DateTime?
+  id           String    @id @default(uuid())
+  manuscriptId String
+  reviewerId   String
+  assignedAt   DateTime  @default(now())
+  dueDate      DateTime?
 
-  manuscript    Manuscript @relation(fields: [manuscriptId], references: [id])
-  reviewer      Reviewer   @relation(fields: [reviewerId], references: [id])
+  manuscript Manuscript @relation(fields: [manuscriptId], references: [id])
+  reviewer   Reviewer   @relation(fields: [reviewerId], references: [id])
 
   @@unique([manuscriptId, reviewerId])
   @@index([manuscriptId])
@@ -153,197 +154,197 @@ model ManuscriptReviewer {
 }
 
 model ActionLog {
-  id            String     @id @default(uuid())
-  manuscriptId  String
+  id              String         @id @default(uuid())
+  manuscriptId    String
   recommendation  Recommendation
-  remark        String?
-  performedAt   DateTime   @default(now())
-  manuscript    Manuscript @relation(fields: [manuscriptId], references: [id])
-  createdByUserId     String?
-  createdBy           Reviewer?   @relation(fields: [createdByUserId], references: [id], name: "action_created_by")
+  remark          String?
+  performedAt     DateTime       @default(now())
+  manuscript      Manuscript     @relation(fields: [manuscriptId], references: [id])
+  createdByUserId String?
+  createdBy       Reviewer?      @relation(fields: [createdByUserId], references: [id], name: "action_created_by")
 
   @@index([manuscriptId])
 }
+
 model Document {
-  id                String      @id @default(uuid())
-  manuscriptLink    String
-  proofofPayment    String
-  otherDocsLink     String?
-  manuscriptId      String
-  Manuscript        Manuscript  @relation(fields: [manuscriptId], references: [id])
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id             String     @id @default(uuid())
+  manuscriptLink String
+  proofofPayment String
+  otherDocsLink  String?
+  manuscriptId   String
+  Manuscript     Manuscript @relation(fields: [manuscriptId], references: [id])
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 }
 
 model Review {
-  id             String          @id @default(uuid())
-  manuscriptId   String
-  reviewerId     String?
-  reviewDate     DateTime
-  
-  // Author-visible comments (shown after editor approval)
-  comments       String?
+  id           String   @id @default(uuid())
+  manuscriptId String
+  reviewerId   String?
+  reviewDate   DateTime @default(now())
 
-  // Confidential — never exposed to author
+  status ReviewStatus @default(PENDING_APPROVAL)
+
+  comments           String?
   commentsForEditors String?
+  checklist          Json?
 
-  // Structured checklist stored as JSON
-  // Shape: ReviewChecklist (see types below)
-  checklist      Json?
+  recommendation Recommendation?
 
-  recommendation Recommendation
-  authorId       String
-  isClosed       Boolean         @default(false)
-  canAuthorView  Boolean         @default(false)
+  isClosed      Boolean @default(false)
+  canAuthorView Boolean @default(false)
 
-  // Submission compliance fields
-  aiDeclarationConfirmed Boolean  @default(false)
-  notifyOnFinalStatus    Boolean  @default(false)
+  aiDeclarationConfirmed Boolean @default(false)
+  notifyOnFinalStatus    Boolean @default(false)
 
-  // Approval trail
-  approvedByEditorId String?
-  approvedAt         DateTime?
+  uploadedFileUrl String?
 
-  Reply          Reply[]
-  Author         Author     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  Manuscript     Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
-  Reviewer       Reviewer?  @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  approvedByUserId String?
+  approvedByUser   User?     @relation("review_approved_by", fields: [approvedByUserId], references: [id])
+  approvedAt       DateTime?
+
+  authorId        String?
   createdByUserId String?
-  createdBy       Reviewer?  @relation(fields: [createdByUserId], references: [id], name: "review_created_by")
+
+  Reply      Reply[]
+  Author     Author?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  Manuscript Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+  Reviewer   Reviewer?  @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  createdBy  Reviewer?  @relation(fields: [createdByUserId], references: [id], name: "review_created_by")
+  Editor     Editor?    @relation(fields: [editorId], references: [id])
+  editorId   String?
 
   @@index([manuscriptId])
   @@index([reviewerId])
   @@index([authorId])
+  @@index([status])
   @@index([canAuthorView])
 }
 
-
 model Reply {
-  id               String   @id @default(uuid())
-  reviewId         String
-  authorId         String
-  subject          String
-  contents         String
-  uploadFiles      String?
-  isAuthor         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  createdByUserId  String? 
-  updatedByUserId  String?
-  updatedAt        DateTime @updatedAt
+  id              String   @id @default(uuid())
+  reviewId        String
+  authorId        String
+  subject         String
+  contents        String
+  uploadFiles     String?
+  isAuthor        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  createdByUserId String?
+  updatedByUserId String?
+  updatedAt       DateTime @updatedAt
 
-  Author      Author @relation(fields: [authorId], references: [id])
-  Review      Review @relation(fields: [reviewId], references: [id])
-  CreatedBy   User?   @relation(fields: [createdByUserId], references: [id], name: "ReplyCreatedBy") 
+  Author    Author @relation(fields: [authorId], references: [id])
+  Review    Review @relation(fields: [reviewId], references: [id])
+  CreatedBy User?  @relation(fields: [createdByUserId], references: [id], name: "ReplyCreatedBy")
 }
 
-
 model Publication {
-  id                 String      @id @default(uuid())
-  title              String
-  abstract           String
-  keywords           String
-  Authors            String[]
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  isActive           Boolean    @default(false)
-  isPublished        Boolean    @default(false)
-  DOI                String
-  pageRange          String?
-  userId             String?
-  formattedManuscript String   
-  downloadTimes       Int     @default(0)
-  editor             User?       @relation(fields: [userId], references: [id])
-  manuscriptId       String? 
-  Manuscript         Manuscript? @relation(fields: [manuscriptId], references: [id])
-  issueId            String
-  Issue              Issue       @relation(fields: [issueId], references: [id])
-  createdByUserId   String?
-  updatedByUserId   String?
-  createdBy         User?      @relation(fields: [createdByUserId], references: [id], name: "publication_created_by")
-  updatedBy         User?      @relation(fields: [updatedByUserId], references: [id], name: "publication_updated_by")
+  id                  String      @id @default(uuid())
+  title               String
+  abstract            String
+  keywords            String
+  Authors             String[]
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  isActive            Boolean     @default(false)
+  isPublished         Boolean     @default(false)
+  DOI                 String
+  pageRange           String?
+  userId              String?
+  formattedManuscript String
+  downloadTimes       Int         @default(0)
+  editor              User?       @relation(fields: [userId], references: [id])
+  manuscriptId        String?
+  Manuscript          Manuscript? @relation(fields: [manuscriptId], references: [id])
+  issueId             String
+  Issue               Issue       @relation(fields: [issueId], references: [id])
+  createdByUserId     String?
+  updatedByUserId     String?
+  createdBy           User?       @relation(fields: [createdByUserId], references: [id], name: "publication_created_by")
+  updatedBy           User?       @relation(fields: [updatedByUserId], references: [id], name: "publication_updated_by")
 
-  comments           Comment[]   @relation(name: "publication_comments")
-  Reactions Reaction[] @relation(name: "publication_reaction")
+  comments            Comment[]             @relation(name: "publication_comments")
+  Reactions           Reaction[]            @relation(name: "publication_reaction")
+  FeaturedPublication FeaturedPublication[]
 
   @@index([title])
-  FeaturedPublication FeaturedPublication[]
 }
 
 model FeaturedPublication {
-  id             String       @id @default(uuid())
-  publicationId  String       @unique
-  publication    Publication  @relation(fields: [publicationId], references: [id])
-  
-  featuredById   String?
-  featuredBy     User?        @relation(fields: [featuredById], references: [id])
-  
-  featuredAt     DateTime     @default(now())
-  priority       Int          @default(1)
-  expiresAt      DateTime?
+  id            String      @id @default(uuid())
+  publicationId String      @unique
+  publication   Publication @relation(fields: [publicationId], references: [id])
+
+  featuredById String?
+  featuredBy   User?   @relation(fields: [featuredById], references: [id])
+
+  featuredAt DateTime  @default(now())
+  priority   Int       @default(1)
+  expiresAt  DateTime?
 
   @@index([priority])
 }
 
 model Issue {
-  id                 String      @id @default(uuid())
-  name               String
-  coverImage         String?
-  description        String?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  volumeId           String
-  Volume             Volume      @relation(fields: [volumeId], references: [id])
-  publications       Publication[]
+  id           String        @id @default(uuid())
+  name         String
+  coverImage   String?
+  description  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  volumeId     String
+  Volume       Volume        @relation(fields: [volumeId], references: [id])
+  publications Publication[]
 }
 
 model Volume {
-  id                 String      @id @default(uuid())
-  name               String
-  description        String?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  issues             Issue[]
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  issues      Issue[]
 }
 
-
 model Comment {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  publicationId String
-  publication   Publication @relation(fields: [publicationId], references: [id], name: "publication_comments")
-  content String
+  id              String      @id @default(uuid())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  publicationId   String
+  publication     Publication @relation(fields: [publicationId], references: [id], name: "publication_comments")
+  content         String
   createdByUserId String?
-  createdBy       User?   @relation(fields: [createdByUserId], references: [id], name: "comment_created_by")
+  createdBy       User?       @relation(fields: [createdByUserId], references: [id], name: "comment_created_by")
   updatedByUserId String?
-  updatedBy       User?   @relation(fields: [updatedByUserId], references: [id], name: "comment_updated_by")
-  isDeleted Boolean @default(false)
+  updatedBy       User?       @relation(fields: [updatedByUserId], references: [id], name: "comment_updated_by")
+  isDeleted       Boolean     @default(false)
 }
 
 model Reaction {
-  id            String   @id @default(uuid())
-  createdAt     DateTime @default(now())
-  
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
   publicationId String
   Publication   Publication @relation(fields: [publicationId], references: [id], name: "publication_reaction")
 
-  userId        String?
-  User          User?       @relation(fields: [userId], references: [id])
+  userId String?
+  User   User?   @relation(fields: [userId], references: [id])
 
-  type          ReactionType
+  type ReactionType
 
   @@unique([publicationId, userId])
 }
 
 model Permission {
-  id              String   @id @default(uuid())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  permissionName  String   @unique
-  isActive        Boolean  @default(true)
-  createdBy       String
-  updatedBy       String
-  role            Role[]   @relation("RolePermissions")
+  id             String   @id @default(uuid())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  permissionName String   @unique
+  isActive       Boolean  @default(true)
+  createdBy      String
+  updatedBy      String
+  role           Role[]   @relation("RolePermissions")
 }
 
 model Role {
@@ -388,7 +389,7 @@ enum Status {
 }
 
 enum EditorRole {
-  EDITOR_IN_CHIEF 
+  EDITOR_IN_CHIEF
   MANAGING_EDITOR
   SECTION_EDITOR
   ASSOCIATE_EDITOR
@@ -406,4 +407,15 @@ enum ChecklistValue {
 enum EnglishQuality {
   NEEDS_IMPROVEMENT
   FINE
+}
+
+enum ReviewStatus {
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+  PENDING_APPROVAL
+  APPROVED
+  VISIBLE_TO_AUTHOR
+  REJECTED_BY_EDITOR
+  RETURNED_TO_REVIEWER
 }
