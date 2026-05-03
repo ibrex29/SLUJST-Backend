@@ -18,6 +18,9 @@ import {
 import { CreateReviewDto } from './dto/create-review.dto';
 import { AcceptRejectManuscriptDto } from './dto/accept-reject-manuscript.dto';
 import { MailService } from '../mail/mail.service';
+import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
+import { FetchReviewDto } from './dto/fetch-review.dto';
+import { Order } from 'src/common/dto/pagination-query.dto';
 
 const AUTHOR_STRIPPED_FIELDS = [
   'commentsForEditors',
@@ -297,19 +300,78 @@ export class ReviewService {
     return toAuthorSafeReview(review as Review);
   }
 
-  async getAllReviews(): Promise<Review[]> {
-    return this.prisma.review.findMany({
+  async getAllReviews(filters: FetchReviewDto) {
+    const whereCondition: Prisma.ReviewWhereInput = {
+      OR: filters.search
+        ? [
+            {
+              Manuscript: {
+                title: {
+                  contains: filters.search,
+                  mode: 'insensitive',
+                },
+              },
+            },
+            {
+              Reviewer: {
+                User: {
+                  firstName: {
+                    contains: filters.search,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+            {
+              Author: {
+                User: {
+                  firstName: {
+                    contains: filters.search,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+          ]
+        : undefined,
+    };
+
+    const itemCount = await this.prisma.review.count({
+      where: whereCondition,
+    });
+
+    const reviews = await this.prisma.review.findMany({
+      where: whereCondition,
+      skip: filters.skip,
+      take: filters.limit,
+      orderBy: {
+        createdAt: filters.sortOrder === Order.DESC ? 'desc' : 'asc',
+      },
       include: {
         Manuscript: {
-          include: { Author: true },
+          include: {
+            Author: true,
+          },
         },
         Reviewer: {
-          include: { User: true },
+          include: {
+            User: true,
+          },
         },
         Author: true,
         Reply: true,
       },
     });
+
+    const paginationMetadata = new PaginationMetadataDTO({
+      pageOptionsDTO: filters,
+      itemCount,
+    });
+
+    return {
+      data: reviews,
+      meta: paginationMetadata,
+    };
   }
 
   async getRepliesForReview(reviewId: string): Promise<Reply[]> {

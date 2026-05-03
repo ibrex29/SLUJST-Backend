@@ -198,6 +198,8 @@ model Review {
   notifyOnFinalStatus    Boolean @default(false)
 
   uploadedFileUrl String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   approvedByUserId String?
   approvedByUser   User?     @relation("review_approved_by", fields: [approvedByUserId], references: [id])

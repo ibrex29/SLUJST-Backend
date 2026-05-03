@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -25,6 +26,7 @@ import { UserType } from 'src/modules/user/types/user.type';
 import { ReviewService } from './review.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { AcceptRejectManuscriptDto } from './dto/accept-reject-manuscript.dto';
+import { FetchReviewDto } from './dto/fetch-review.dto';
 
 @ApiBearerAuth()
 @ApiTags('review')
@@ -44,10 +46,7 @@ export class ReviewController {
   @Post('create-review')
   @ApiOperation({ summary: 'Submit review for an assigned manuscript' })
   @ApiBody({ type: CreateReviewDto })
-  createReview(
-    @User('userId') userId: string,
-    @Body() dto: CreateReviewDto,
-  ) {
+  createReview(@User('userId') userId: string, @Body() dto: CreateReviewDto) {
     return this.reviewService.createReview(userId, dto);
   }
 
@@ -101,8 +100,8 @@ export class ReviewController {
   )
   @Get('all-review')
   @ApiOperation({ summary: 'Get all reviews' })
-  getAllReviews() {
-    return this.reviewService.getAllReviews();
+  getAllReviews(@Query() query: FetchReviewDto) {
+    return this.reviewService.getAllReviews(query);
   }
 
   @Public()
@@ -146,7 +145,9 @@ export class ReviewController {
     UserType.SECTION_EDITOR,
   )
   @Post(':reviewId/allow-author-view')
-  @ApiOperation({ summary: 'Legacy: approve review and make visible to author' })
+  @ApiOperation({
+    summary: 'Legacy: approve review and make visible to author',
+  })
   @ApiParam({ name: 'reviewId', description: 'Review UUID' })
   allowAuthorToView(
     @Param('reviewId') reviewId: string,
