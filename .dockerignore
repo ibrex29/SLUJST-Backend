@@ -1,8 +1,11 @@
 # Node.js modules
+node_modules
+
 # Temp App Data
 /data
 
-/node_modules
+# Logs
+*.log
 yarn-error.log
 npm-debug.log
 
@@ -10,17 +13,9 @@ npm-debug.log
 dist
 build
 
-# Logs
-*.log
-
 # Environment files
 .env
 
-# Ignore local config files
+# Git
 .git
 .gitignore
-
-# Docker files
-Dockerfile
-docker-compose.yml
-.dockerignore
