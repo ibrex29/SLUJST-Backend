@@ -33,3 +33,10 @@ clean:
 rebuild:
 	docker compose down -v
 	docker compose up -d --build
+
+deploy:
+	git reset --hard
+	git pull origin main
+	docker compose down
+	docker compose up -d --build
+	docker logs -f $(APP)
