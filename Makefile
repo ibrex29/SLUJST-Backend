@@ -36,7 +36,7 @@ rebuild:
 
 deploy:
 	git reset --hard
-	git pull origin main
+	git pull origin staging
 	docker compose down
 	docker compose up -d --build
 	docker logs -f $(APP)
