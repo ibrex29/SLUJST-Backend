@@ -1,0 +1,37 @@
+services:
+  slujst-nginx:
+    image: nginx:alpine
+    container_name: slujst-nginx
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - slujst-api
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
+  slujst-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slujst-api
+    restart: always
+    env_file:
+      - .env
+    # depends_on:
+    #   - slujst-db
+    command: sh -c "yarn prisma migrate deploy && yarn start:prod"
+
+  # slujst-db:
+  #   image: postgres:16-alpine
+  #   container_name: slujst-db
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: exist
+  #     POSTGRES_DB: slujst_db
+  #   volumes:
+  #     - slujst_pg_data:/var/lib/postgresql/data
+
+# volumes:
+#   slujst_pg_data:
