@@ -104,6 +104,14 @@ export class ReviewController {
     return this.reviewService.getAllReviews(query);
   }
 
+  @Get(':reviewId')
+@ApiOperation({ summary: 'Get review by ID' })
+@ApiParam({ name: 'reviewId', description: 'Review UUID' })
+getReviewById(@Param('reviewId') reviewId: string) {
+  return this.reviewService.getReviewById(reviewId);
+}
+
+
   @Public()
   @Get('recommendations')
   @ApiOperation({ summary: 'Get recommendation values' })

@@ -374,6 +374,52 @@ export class ReviewService {
     };
   }
 
+  async getReviewById(reviewId: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+      include: {
+        Manuscript: {
+          include: {
+            Author: {
+              include: {
+                User: true,
+              },
+            },
+            Document: true,
+            Section: true,
+            SuggestedReviewers: true,
+          },
+        },
+        Reviewer: {
+          include: {
+            User: true,
+          },
+        },
+        Author: {
+          include: {
+            User: true,
+          },
+        },
+        Reply: true,
+        approvedByUser: {
+          select: {
+            id: true,
+            title: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!review) {
+      throw new NotFoundException(`Review with ID ${reviewId} not found`);
+    }
+
+    return review;
+  }
+
   async getRepliesForReview(reviewId: string): Promise<Reply[]> {
     const review = await this.prisma.review.findUnique({
       where: { id: reviewId },
