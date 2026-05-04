@@ -6,19 +6,29 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Author, Manuscript, Prisma, ReviewStatus, Status } from '@prisma/client';
+import {
+  Author,
+  Manuscript,
+  Prisma,
+  ReviewStatus,
+  Status,
+} from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateAuthorDto } from './dtos/create-author.dto';
 import * as bcryptjs from 'bcryptjs';
 import { UserType } from '../user/types/user.type';
 import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
 import { FetchManuscriptDTO } from '../manuscript/dto/fetch-manuscript.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthorService {
   private readonly logger = new Logger(AuthorService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async createAuthor(dto: CreateAuthorDto): Promise<Author> {
     const role = await this.prisma.role.findUnique({
@@ -40,7 +50,7 @@ export class AuthorService {
     const hashedPassword = await bcryptjs.hash(dto.password, 10);
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
           data: {
             title: dto.title,
@@ -56,7 +66,7 @@ export class AuthorService {
           },
         });
 
-        return tx.author.create({
+        const author = await tx.author.create({
           data: {
             userId: user.id,
             affiliation: dto.affiliation,
@@ -65,7 +75,23 @@ export class AuthorService {
             reviewInterest: dto.reviewInterest ?? false,
           },
         });
+
+        return { user, author };
       });
+
+      // Send welcome email after successful registration
+      this.mailService
+        .sendWelcomeUserEmail(
+          result.user.email,
+          `${result.user.firstName} ${result.user.lastName}`,
+          UserType.AUTHOR,
+          true, 
+        )
+        .catch((emailError) => {
+          this.logger.warn('Welcome email failed (non-blocking)', emailError);
+        });
+
+      return result.author;
     } catch (error) {
       this.logger.error('Failed to create author', error);
       throw new InternalServerErrorException('Failed to create author');
@@ -153,7 +179,9 @@ export class AuthorService {
       return counts;
     } catch (error) {
       this.logger.error('Failed to fetch manuscript counts', error);
-      throw new InternalServerErrorException('Failed to fetch manuscript counts');
+      throw new InternalServerErrorException(
+        'Failed to fetch manuscript counts',
+      );
     }
   }
 
@@ -191,115 +219,115 @@ export class AuthorService {
   }
 
   async getVisibleReviewsForAuthor(
-  userId: string,
-  query: FetchManuscriptDTO,
-): Promise<{ data: any[]; meta: PaginationMetadataDTO }> {
-  const author = await this.getAuthorByUserId(userId);
+    userId: string,
+    query: FetchManuscriptDTO,
+  ): Promise<{ data: any[]; meta: PaginationMetadataDTO }> {
+    const author = await this.getAuthorByUserId(userId);
 
-  const where: Prisma.ReviewWhereInput = {
-    authorId: author.id,
-    canAuthorView: true,
-    status: ReviewStatus.APPROVED,
-    OR: query.search
-      ? [
-          {
-            Manuscript: {
-              title: {
+    const where: Prisma.ReviewWhereInput = {
+      authorId: author.id,
+      canAuthorView: true,
+      status: ReviewStatus.APPROVED,
+      OR: query.search
+        ? [
+            {
+              Manuscript: {
+                title: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
+              },
+            },
+            {
+              Manuscript: {
+                abstract: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
+              },
+            },
+            {
+              comments: {
                 contains: query.search,
                 mode: 'insensitive',
               },
             },
+          ]
+        : undefined,
+    };
+
+    const [itemCount, reviews] = await this.prisma.$transaction([
+      this.prisma.review.count({ where }),
+
+      this.prisma.review.findMany({
+        where,
+        select: {
+          id: true,
+          reviewDate: true,
+          status: true,
+          comments: true,
+          checklist: true,
+          recommendation: true,
+          canAuthorView: true,
+          approvedAt: true,
+
+          Manuscript: {
+            include: {
+              Author: true,
+              Document: true,
+              Section: true,
+              SuggestedReviewers: true,
+            },
           },
-          {
-            Manuscript: {
-              abstract: {
-                contains: query.search,
-                mode: 'insensitive',
+
+          Author: {
+            include: {
+              User: {
+                select: {
+                  id: true,
+                  title: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
               },
             },
           },
-          {
-            comments: {
-              contains: query.search,
-              mode: 'insensitive',
+
+          Reply: {
+            select: {
+              id: true,
+              subject: true,
+              contents: true,
+              isAuthor: true,
+              createdAt: true,
             },
           },
-        ]
-      : undefined,
-  };
 
-  const [itemCount, reviews] = await this.prisma.$transaction([
-    this.prisma.review.count({ where }),
-
-    this.prisma.review.findMany({
-      where,
-      select: {
-        id: true,
-        reviewDate: true,
-        status: true,
-        comments: true,
-        checklist: true,
-        recommendation: true,
-        canAuthorView: true,
-        approvedAt: true,
-
-        Manuscript: {
-          include: {
-            Author: true,
-            Document: true,
-            Section: true,
-            SuggestedReviewers: true,
-          },
-        },
-
-        Author: {
-          include: {
-            User: {
-              select: {
-                id: true,
-                title: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
+          approvedByUser: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
             },
           },
         },
-
-        Reply: {
-          select: {
-            id: true,
-            subject: true,
-            contents: true,
-            isAuthor: true,
-            createdAt: true,
-          },
+        orderBy: {
+          approvedAt: query.sortOrder ?? 'desc',
         },
+        skip: query.skip,
+        take: query.limit,
+      }),
+    ]);
 
-        approvedByUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-      orderBy: {
-        approvedAt: query.sortOrder ?? 'desc',
-      },
-      skip: query.skip,
-      take: query.limit,
-    }),
-  ]);
-
-  return {
-    data: reviews,
-    meta: new PaginationMetadataDTO({
-      pageOptionsDTO: query,
-      itemCount,
-    }),
-  };
-}
+    return {
+      data: reviews,
+      meta: new PaginationMetadataDTO({
+        pageOptionsDTO: query,
+        itemCount,
+      }),
+    };
+  }
 
   private getAuthorManuscriptInclude(): Prisma.ManuscriptInclude {
     return {

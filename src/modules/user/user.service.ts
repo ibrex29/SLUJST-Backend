@@ -14,10 +14,14 @@ import { GroupedReviewersDto } from './dtos/grouped-reviewers.dto';
 import { FetchUsersDTO } from './dtos/fetch-users.dto';
 import { UpdateUserRoleOrSectionDTO } from './dtos/update-user-role.dto';
 import { UpdateUserProfileDTO } from './dtos/update-user-profile.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,  
+  ) {}
 
   async findUserByEmail(email: string) {
     return this.prisma.user.findUnique({
@@ -141,7 +145,15 @@ export class UserService {
   }
 
   async createUser(createUserDto: CreateUserDto, userId: string) {
-    const { email, password, roleName, sectionId, firstName, lastName, affiliation, phoneNumber } = createUserDto;
+    const {
+      email,
+      password,
+      roleName,
+      sectionId,
+      firstName,
+      lastName,
+      phoneNumber,
+    } = createUserDto;
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -166,7 +178,8 @@ export class UserService {
     }
 
     if (
-      (roleName === 'reviewer' || roleName === 'Section-Editor') &&
+      (roleName === UserType.REVIEWER ||
+        roleName === UserType.SECTION_EDITOR) &&
       !sectionId
     ) {
       throw new BadRequestException('Section ID is required for this role');
@@ -175,9 +188,9 @@ export class UserService {
     const createdUser = await this.prisma.user.create({
       data: {
         email,
-        firstName: firstName, 
-        lastName: lastName,
-        phoneNumber: phoneNumber,
+        firstName,
+        lastName,
+        phoneNumber,
         createdBy: userId,
         updatedBy: '',
         password: hashedPassword,
@@ -199,6 +212,7 @@ export class UserService {
           },
         });
         break;
+
       case UserType.SECTION_EDITOR:
         await this.prisma.editor.create({
           data: {
@@ -208,6 +222,7 @@ export class UserService {
           },
         });
         break;
+
       case UserType.AUTHOR:
         await this.prisma.author.create({
           data: {
@@ -217,15 +232,16 @@ export class UserService {
           },
         });
         break;
+
       case UserType.EDITOR_IN_CHIEF:
         await this.prisma.editor.create({
           data: {
             userId: createdUser.id,
-
             role: EditorRole.EDITOR_IN_CHIEF,
           },
         });
         break;
+
       case UserType.MANAGING_EDITOR:
         await this.prisma.editor.create({
           data: {
@@ -234,36 +250,49 @@ export class UserService {
           },
         });
         break;
+
       case UserType.ASSOCIATE_EDITOR:
         await this.prisma.editor.create({
           data: {
             userId: createdUser.id,
-
             role: EditorRole.ASSOCIATE_EDITOR,
           },
         });
         break;
+
       case UserType.COPY_EDITOR:
         await this.prisma.editor.create({
           data: {
             userId: createdUser.id,
-
             role: EditorRole.COPY_EDITOR,
           },
         });
         break;
+
       case UserType.PRODUCTION_EDITOR:
         await this.prisma.editor.create({
           data: {
             userId: createdUser.id,
-
             role: EditorRole.PRODUCTION_EDITOR,
           },
         });
         break;
+
       default:
         throw new BadRequestException('Invalid role name provided');
     }
+
+    // Non-blocking welcome email
+    this.mailService
+      .sendWelcomeUserEmail(
+        createdUser.email,
+        `${createdUser.firstName} ${createdUser.lastName}`,
+        roleName,
+        false,
+      )
+      .catch((error) => {
+        console.error('Failed to send welcome email:', error);
+      });
 
     return createdUser;
   }
