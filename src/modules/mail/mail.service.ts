@@ -14,7 +14,35 @@ export class MailService {
     this.senderEmail = this.configService.getOrThrow(MAIL_FROM);
   }
 
-  async sendManuscriptConfirmation(authorName: string, manuscriptTitle: string, recipientEmail: string) {
+  async sendWelcomeUserEmail(
+    recipientEmail: string,
+    fullName: string,
+    roleName?: string,
+    isSelfRegistered = false,
+  ) {
+    const subject = isSelfRegistered
+      ? 'Welcome to SLUJST – Your Author Account is Ready'
+      : 'Welcome to SLUJST – Journal of Science and Technology';
+
+    await this.sendMail({
+      to: recipientEmail,
+      subject,
+      template: 'welcome-user',
+      context: {
+        fullName,
+        roleName,
+        isSelfRegistered,
+        loginUrl: `${process.env.FRONTEND_URL}/signin`,
+        submitManuscriptUrl: `${process.env.FRONTEND_URL}/dashboard/author/submit-manuscript`,
+        year: new Date().getFullYear(),
+      },
+    });
+  }
+  async sendManuscriptConfirmation(
+    authorName: string,
+    manuscriptTitle: string,
+    recipientEmail: string,
+  ) {
     try {
       await this.mailerService.sendMail({
         to: recipientEmail,
@@ -63,7 +91,7 @@ export class MailService {
   ) {
     const subject = `Decision on Your Manuscript Submission: ${manuscriptTitle}`;
     const template = 'Manuscript-Decision-Notification';
-  
+
     const options = {
       to: authorEmail,
       subject,
@@ -72,7 +100,7 @@ export class MailService {
         authorName,
         manuscriptTitle,
         decision,
-        rejectionReason, 
+        rejectionReason,
         revisionDeadline,
         isRejected: decision === 'Rejected',
         isAccepted: decision === 'Accepted',
@@ -80,10 +108,10 @@ export class MailService {
         year: new Date().getFullYear(),
       },
     };
-  
+
     await this.sendMail(options);
   }
-  
+
   async sendManuscriptReviewInvitationEmail(
     reviewerEmail: string,
     reviewerName: string,
@@ -92,7 +120,7 @@ export class MailService {
   ) {
     const subject = `Invitation to Review Manuscript: ${manuscriptTitle}`;
     const template = 'Manuscript-Review-Invitation';
-  
+
     const options = {
       to: reviewerEmail,
       subject,
@@ -104,7 +132,7 @@ export class MailService {
         year: new Date().getFullYear(),
       },
     };
-  
+
     await this.sendMail(options);
   }
 
@@ -117,7 +145,7 @@ export class MailService {
   ) {
     const subject = `Your Manuscript is Under Review: ${manuscriptTitle}`;
     const template = 'Author-Review-Notification';
-  
+
     const options = {
       to: authorEmail,
       subject,
@@ -130,7 +158,7 @@ export class MailService {
         year: new Date().getFullYear(),
       },
     };
-  
+
     await this.sendMail(options);
   }
 
@@ -140,11 +168,11 @@ export class MailService {
     manuscriptTitle: string,
     reviewerName: string,
     comments: string,
-    recommendation: string
+    recommendation: string,
   ) {
     const subject = `Review Created for Your Manuscript: ${manuscriptTitle}`;
     const template = 'manuscript-review-creation';
-  
+
     const options = {
       to: authorEmail,
       subject,
@@ -158,8 +186,7 @@ export class MailService {
         year: new Date().getFullYear(),
       },
     };
-  
+
     await this.sendMail(options);
   }
-  
 }
