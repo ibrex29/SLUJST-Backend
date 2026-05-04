@@ -1,5 +1,3 @@
-// src/review/review.service.ts
-
 import {
   BadRequestException,
   ForbiddenException,
@@ -14,6 +12,7 @@ import {
   Review,
   Reviewer,
   ReviewStatus,
+  Status,
 } from '@prisma/client';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { AcceptRejectManuscriptDto } from './dto/accept-reject-manuscript.dto';
@@ -581,4 +580,119 @@ export class ReviewService {
   async allowAuthorToViewReview(reviewId: string, editorUserId: string) {
     return this.approveReview(reviewId, editorUserId);
   }
+
+  async getReviewerDashboardAnalytics(userId: string) {
+  const reviewerId = await this.getReviewerIdForLoggedUser(userId);
+
+  const [
+    assigned,
+    submitted,
+    awaitingReview,
+    accepted,
+    rejected,
+    submittedOrPending,
+    recentAssignments,
+  ] = await this.prisma.$transaction([
+    this.prisma.manuscriptReviewer.count({
+      where: { reviewerId },
+    }),
+
+    this.prisma.review.count({
+      where: { reviewerId },
+    }),
+
+    this.prisma.manuscriptReviewer.count({
+      where: {
+        reviewerId,
+        manuscript: {
+          status: Status.UNDER_REVIEW,
+        },
+      },
+    }),
+
+    this.prisma.review.count({
+      where: {
+        reviewerId,
+        recommendation: Recommendation.ACCEPT,
+      },
+    }),
+
+    this.prisma.review.count({
+      where: {
+        reviewerId,
+        recommendation: Recommendation.REJECT,
+      },
+    }),
+
+    this.prisma.manuscriptReviewer.count({
+      where: {
+        reviewerId,
+        manuscript: {
+          status: Status.SUBMITTED,
+        },
+      },
+    }),
+
+    this.prisma.manuscriptReviewer.findMany({
+      where: { reviewerId },
+      take: 5,
+      orderBy: { assignedAt: 'desc' },
+      include: {
+        manuscript: {
+          include: {
+            Author: {
+              include: {
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+            Section: true,
+            Document: true,
+            Review: {
+              where: { reviewerId },
+            },
+          },
+        },
+      },
+    }),
+  ]);
+
+  const total = assigned || 1;
+
+  return {
+    cards: {
+      submitted,
+      awaitingReview,
+      assigned,
+      accepted,
+    },
+
+    pipeline: {
+      totalManuscripts: assigned,
+      submittedPending: {
+        count: submittedOrPending,
+        percentage: Number(((submittedOrPending / total) * 100).toFixed(1)),
+      },
+      underReview: {
+        count: awaitingReview,
+        percentage: Number(((awaitingReview / total) * 100).toFixed(1)),
+      },
+      acceptedApproved: {
+        count: accepted,
+        percentage: Number(((accepted / total) * 100).toFixed(1)),
+      },
+      rejected: {
+        count: rejected,
+        percentage: Number(((rejected / total) * 100).toFixed(1)),
+      },
+    },
+
+    recentAssignments,
+  };
+}
 }
