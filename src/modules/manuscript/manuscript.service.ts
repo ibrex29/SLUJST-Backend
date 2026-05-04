@@ -764,36 +764,34 @@ export class ManuscriptService {
       totalSubmitted,
       awaitingReview,
       rejected,
-      approved,
+      published,
+      submittedOrPending,
       recentSubmissions,
     ] = await this.prisma.$transaction([
       this.prisma.manuscript.count(),
 
       this.prisma.manuscript.count({
+        where: { status: Status.UNDER_REVIEW },
+      }),
+
+      this.prisma.manuscript.count({
+        where: { status: Status.REJECTED },
+      }),
+
+      this.prisma.publication.count({
         where: {
-          status: 'UNDER_REVIEW',
+          isActive: true,
+        //   // isPublished: true,
         },
       }),
 
       this.prisma.manuscript.count({
-        where: {
-          status: 'REJECTED',
-        },
-      }),
-
-      this.prisma.manuscript.count({
-        where: {
-          status: {
-            in: ['ACCEPTED', 'PUBLISHED'],
-          },
-        },
+        where: { status: Status.SUBMITTED },
       }),
 
       this.prisma.manuscript.findMany({
         take: 5,
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: { createdAt: 'desc' },
         include: {
           Author: {
             include: {
@@ -818,12 +816,6 @@ export class ManuscriptService {
       }),
     ]);
 
-    const submittedOrPending = await this.prisma.manuscript.count({
-      where: {
-        status: 'SUBMITTED',
-      },
-    });
-
     const totalManuscripts = totalSubmitted || 1;
 
     return {
@@ -831,7 +823,7 @@ export class ManuscriptService {
         totalSubmitted,
         awaitingReview,
         rejected,
-        approved,
+        approved: published,
       },
 
       pipeline: {
@@ -849,8 +841,8 @@ export class ManuscriptService {
           ),
         },
         acceptedApproved: {
-          count: approved,
-          percentage: Number(((approved / totalManuscripts) * 100).toFixed(1)),
+          count: published,
+          percentage: Number(((published / totalManuscripts) * 100).toFixed(1)),
         },
         rejected: {
           count: rejected,
