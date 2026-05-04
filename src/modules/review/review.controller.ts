@@ -120,12 +120,17 @@ export class ReviewController {
   }
 
   @Get('manuscript/:manuscriptId/has-review')
-  @ApiOperation({ summary: 'Check if manuscript has at least one review' })
-  @ApiParam({ name: 'manuscriptId', description: 'Manuscript UUID' })
+  @ApiOperation({
+    summary: 'Check if manuscript has an approved review visible to the author',
+  })
+  @ApiParam({
+    name: 'manuscriptId',
+    description: 'Manuscript UUID',
+  })
   hasReview(
     @Param('manuscriptId') manuscriptId: string,
   ): Promise<{ hasReview: boolean }> {
-    return this.reviewService.hasReview(manuscriptId);
+    return this.reviewService.hasAuthorVisibleReview(manuscriptId);
   }
 
   @Role(UserType.REVIEWER)

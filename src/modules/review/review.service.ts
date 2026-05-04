@@ -468,12 +468,23 @@ export class ReviewService {
     return Object.values(Recommendation);
   }
 
-  async hasReview(manuscriptId: string): Promise<{ hasReview: boolean }> {
+  async hasAuthorVisibleReview(
+    manuscriptId: string,
+  ): Promise<{ hasReview: boolean; canAuthorView: boolean }> {
     const reviewCount = await this.prisma.review.count({
-      where: { manuscriptId },
+      where: {
+        manuscriptId,
+        canAuthorView: true,
+        status: ReviewStatus.APPROVED,
+      },
     });
 
-    return { hasReview: reviewCount > 0 };
+    const hasVisibleReview = reviewCount > 0;
+
+    return {
+      hasReview: hasVisibleReview,
+      canAuthorView: hasVisibleReview,
+    };
   }
 
   async submitFinalRemark(
