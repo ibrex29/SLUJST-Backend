@@ -103,103 +103,103 @@ export class ManuscriptService {
       });
     } catch (error) {
       throw new InternalServerErrorException(
-        `Failed to upload manuscript: ${error.message}`,
+        `Failed to upload manuscript: ${(error as Error).message}`,
       );
     }
   }
 
-async listAllManuscripts(
-  fetchManuscriptDto: FetchManuscriptDTO,
-): Promise<{ data: Manuscript[]; meta: PaginationMetadataDTO }> {
-  try {
-    const filters: any = {};
+  async listAllManuscripts(
+    fetchManuscriptDto: FetchManuscriptDTO,
+  ): Promise<{ data: Manuscript[]; meta: PaginationMetadataDTO }> {
+    try {
+      const filters: any = {};
 
-    if (fetchManuscriptDto.status) {
-      filters.status = fetchManuscriptDto.status;
-    }
+      if (fetchManuscriptDto.status) {
+        filters.status = fetchManuscriptDto.status;
+      }
 
-    if (fetchManuscriptDto.search) {
-      filters.OR = [
-        {
-          title: {
-            contains: fetchManuscriptDto.search,
-            mode: 'insensitive',
+      if (fetchManuscriptDto.search) {
+        filters.OR = [
+          {
+            title: {
+              contains: fetchManuscriptDto.search,
+              mode: 'insensitive',
+            },
           },
-        },
-        {
-          abstract: {
-            contains: fetchManuscriptDto.search,
-            mode: 'insensitive',
+          {
+            abstract: {
+              contains: fetchManuscriptDto.search,
+              mode: 'insensitive',
+            },
           },
-        },
-      ];
-    }
+        ];
+      }
 
-    const [itemCount, manuscripts] = await this.prisma.$transaction([
-      this.prisma.manuscript.count({ where: filters }),
+      const [itemCount, manuscripts] = await this.prisma.$transaction([
+        this.prisma.manuscript.count({ where: filters }),
 
-      this.prisma.manuscript.findMany({
-        where: filters,
-        include: {
-          Author: true,
+        this.prisma.manuscript.findMany({
+          where: filters,
+          include: {
+            Author: true,
 
-          Reviewers: {
-            include: {
-              reviewer: {
-                include: {
-                  User: {
-                    select: {
-                      firstName: true,
-                      lastName: true,
-                      email: true,
-                      phoneNumber: true,
+            Reviewers: {
+              include: {
+                reviewer: {
+                  include: {
+                    User: {
+                      select: {
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        phoneNumber: true,
+                      },
                     },
                   },
                 },
               },
             },
-          },
 
-          ActionLog: {
-            include: {
-              createdBy: {
-                include: { User: true },
+            ActionLog: {
+              include: {
+                createdBy: {
+                  include: { User: true },
+                },
               },
             },
+            Review: true,
+            Document: true,
+            Section: true,
+            SuggestedReviewers: true,
+
+            _count: {
+              select: { Reviewers: true },
+            },
           },
-          Review: true,
-          Document: true,
-          Section: true,
-          SuggestedReviewers: true,
 
-          _count: {
-            select: { Reviewers: true },
+          orderBy: {
+            createdAt: fetchManuscriptDto.sortOrder,
           },
-        },
 
-        orderBy: {
-          createdAt: fetchManuscriptDto.sortOrder,
-        },
+          skip: fetchManuscriptDto.skip,
+          take: fetchManuscriptDto.limit,
+        }),
+      ]);
 
-        skip: fetchManuscriptDto.skip,
-        take: fetchManuscriptDto.limit,
-      }),
-    ]);
-
-    return {
-      data: manuscripts,
-      meta: new PaginationMetadataDTO({
-        pageOptionsDTO: fetchManuscriptDto,
-        itemCount,
-      }),
-    };
-  } catch (error) {
-    console.error('Error listing paginated manuscripts:', error);
-    throw new InternalServerErrorException(
-      'Failed to list paginated manuscripts',
-    );
+      return {
+        data: manuscripts,
+        meta: new PaginationMetadataDTO({
+          pageOptionsDTO: fetchManuscriptDto,
+          itemCount,
+        }),
+      };
+    } catch (error) {
+      console.error('Error listing paginated manuscripts:', error);
+      throw new InternalServerErrorException(
+        `Failed to list paginated manuscripts: ${(error as Error).message}`,
+      );
+    }
   }
-}
 
   async assignManuscriptToSection(
     assignManuscriptToSectionDto: AssignManuscriptToSectionDto,
@@ -391,7 +391,7 @@ async listAllManuscripts(
       return manuscript;
     } catch (error) {
       throw new InternalServerErrorException(
-        `Failed to retrieve manuscript details: ${error.message}`,
+        `Failed to retrieve manuscript details: ${(error as Error).message}`,
       );
     }
   }
@@ -708,153 +708,202 @@ async listAllManuscripts(
     });
   }
 
-async unassignReviewers(
-  manuscriptId: string,
-  dto: UnassignReviewersDto,
-): Promise<{ statusCode: number; message: string; unassigned: number }> {
-  const existing = await this.prisma.manuscriptReviewer.findMany({
-    where: {
-      manuscriptId,
-      reviewerId: { in: dto.reviewerIds },
-    },
-    select: { reviewerId: true },
-  });
-
-  if (existing.length === 0) {
-    throw new NotFoundException(
-      `None of the reviewers are assigned to this manuscript`,
-    );
-  }
-
-  const validIds = existing.map((r) => r.reviewerId);
-
-  const { count } = await this.prisma.manuscriptReviewer.deleteMany({
-    where: {
-      manuscriptId,
-      reviewerId: { in: validIds },
-    },
-  });
-
-  const remainingCount = await this.prisma.manuscriptReviewer.count({
-    where: { manuscriptId },
-  });
-
-  if (remainingCount === 0) {
-    await this.prisma.manuscript.update({
-      where: { id: manuscriptId },
-      data: { status: Status.SUBMITTED },
+  async unassignReviewers(
+    manuscriptId: string,
+    dto: UnassignReviewersDto,
+  ): Promise<{ statusCode: number; message: string; unassigned: number }> {
+    const existing = await this.prisma.manuscriptReviewer.findMany({
+      where: {
+        manuscriptId,
+        reviewerId: { in: dto.reviewerIds },
+      },
+      select: { reviewerId: true },
     });
+
+    if (existing.length === 0) {
+      throw new NotFoundException(
+        `None of the reviewers are assigned to this manuscript`,
+      );
+    }
+
+    const validIds = existing.map((r) => r.reviewerId);
+
+    const { count } = await this.prisma.manuscriptReviewer.deleteMany({
+      where: {
+        manuscriptId,
+        reviewerId: { in: validIds },
+      },
+    });
+
+    const remainingCount = await this.prisma.manuscriptReviewer.count({
+      where: { manuscriptId },
+    });
+
+    if (remainingCount === 0) {
+      await this.prisma.manuscript.update({
+        where: { id: manuscriptId },
+        data: { status: Status.SUBMITTED },
+      });
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: `${count} reviewer(s) unassigned. No reviewers remaining — manuscript reverted to SUBMITTED.`,
+        unassigned: count,
+      };
+    }
 
     return {
       statusCode: HttpStatus.OK,
-      message: `${count} reviewer(s) unassigned. No reviewers remaining — manuscript reverted to SUBMITTED.`,
+      message: `${count} reviewer(s) successfully unassigned. ${remainingCount} reviewer(s) still assigned.`,
       unassigned: count,
     };
   }
 
-  return {
-    statusCode: HttpStatus.OK,
-    message: `${count} reviewer(s) successfully unassigned. ${remainingCount} reviewer(s) still assigned.`,
-    unassigned: count,
-  };
-}
-
-async getDashboardAnalytics() {
-  const [
-    totalSubmitted,
-    awaitingReview,
-    rejected,
-    approved,
-    recentSubmissions,
-  ] = await this.prisma.$transaction([
-    this.prisma.manuscript.count(),
-
-    this.prisma.manuscript.count({
-      where: {
-        status: 'UNDER_REVIEW',
-      },
-    }),
-
-    this.prisma.manuscript.count({
-      where: {
-        status: 'REJECTED',
-      },
-    }),
-
-    this.prisma.manuscript.count({
-      where: {
-        status: {
-          in: ['ACCEPTED', 'PUBLISHED'],
-        },
-      },
-    }),
-
-    this.prisma.manuscript.findMany({
-      take: 5,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: {
-        Author: {
-          include: {
-            User: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-          },
-        },
-        Section: true,
-        Document: true,
-        _count: {
-          select: {
-            Reviewers: true,
-            Review: true,
-          },
-        },
-      },
-    }),
-  ]);
-
-  const submittedOrPending = await this.prisma.manuscript.count({
-    where: {
-      status: 'SUBMITTED',
-    },
-  });
-
-  const totalManuscripts = totalSubmitted || 1;
-
-  return {
-    cards: {
+  async getDashboardAnalytics() {
+    const [
       totalSubmitted,
       awaitingReview,
       rejected,
       approved,
-    },
+      recentSubmissions,
+    ] = await this.prisma.$transaction([
+      this.prisma.manuscript.count(),
 
-    pipeline: {
-      totalManuscripts: totalSubmitted,
-      submittedPending: {
-        count: submittedOrPending,
-        percentage: Number(((submittedOrPending / totalManuscripts) * 100).toFixed(1)),
-      },
-      underReview: {
-        count: awaitingReview,
-        percentage: Number(((awaitingReview / totalManuscripts) * 100).toFixed(1)),
-      },
-      acceptedApproved: {
-        count: approved,
-        percentage: Number(((approved / totalManuscripts) * 100).toFixed(1)),
-      },
-      rejected: {
-        count: rejected,
-        percentage: Number(((rejected / totalManuscripts) * 100).toFixed(1)),
-      },
-    },
+      this.prisma.manuscript.count({
+        where: {
+          status: 'UNDER_REVIEW',
+        },
+      }),
 
-    recentSubmissions,
-  };
-}
+      this.prisma.manuscript.count({
+        where: {
+          status: 'REJECTED',
+        },
+      }),
+
+      this.prisma.manuscript.count({
+        where: {
+          status: {
+            in: ['ACCEPTED', 'PUBLISHED'],
+          },
+        },
+      }),
+
+      this.prisma.manuscript.findMany({
+        take: 5,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          Author: {
+            include: {
+              User: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          Section: true,
+          Document: true,
+          _count: {
+            select: {
+              Reviewers: true,
+              Review: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const submittedOrPending = await this.prisma.manuscript.count({
+      where: {
+        status: 'SUBMITTED',
+      },
+    });
+
+    const totalManuscripts = totalSubmitted || 1;
+
+    return {
+      cards: {
+        totalSubmitted,
+        awaitingReview,
+        rejected,
+        approved,
+      },
+
+      pipeline: {
+        totalManuscripts: totalSubmitted,
+        submittedPending: {
+          count: submittedOrPending,
+          percentage: Number(
+            ((submittedOrPending / totalManuscripts) * 100).toFixed(1),
+          ),
+        },
+        underReview: {
+          count: awaitingReview,
+          percentage: Number(
+            ((awaitingReview / totalManuscripts) * 100).toFixed(1),
+          ),
+        },
+        acceptedApproved: {
+          count: approved,
+          percentage: Number(((approved / totalManuscripts) * 100).toFixed(1)),
+        },
+        rejected: {
+          count: rejected,
+          percentage: Number(((rejected / totalManuscripts) * 100).toFixed(1)),
+        },
+      },
+
+      recentSubmissions,
+    };
+  }
+
+  async getReviewsByManuscriptId(manuscriptId: string) {
+    const reviews = await this.prisma.review.findMany({
+      where: { manuscriptId },
+      include: {
+        Manuscript: {
+          include: {
+            Author: {
+              include: {
+                User: true,
+              },
+            },
+            Document: true,
+            Section: true,
+            SuggestedReviewers: true,
+          },
+        },
+        Reviewer: {
+          include: {
+            User: true,
+          },
+        },
+        Author: {
+          include: {
+            User: true,
+          },
+        },
+        Reply: true,
+        approvedByUser: {
+          select: {
+            id: true,
+            title: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return reviews;
+  }
 }
