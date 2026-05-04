@@ -360,20 +360,10 @@
   resolved "https://registry.npmjs.org/@css-inline/css-inline-darwin-arm64/-/css-inline-darwin-arm64-0.20.0.tgz#331fa8cd5802446e50f49bd808e63b24b052385b"
   integrity sha512-hT8Mtwp4PJ9mMYFDG/xg7KCa7nPqseJdXaajxXVjXB8+6oemxgx+7TUO7HSfmeY4Ox7X2vaNfaIfti4ySgNvyg==
 
-"@css-inline/css-inline-darwin-arm64@^0.20.2":
-  version "0.20.2"
-  resolved "https://registry.npmjs.org/@css-inline/css-inline-darwin-arm64/-/css-inline-darwin-arm64-0.20.2.tgz#88dc37ccfcd0fec8664fd9595dd4b58060d3812a"
-  integrity sha512-Kd4ZMElHqZ6Ymieitr/WXMWGtOkrIggBDg7kc/zv8mqZ9uDuk68FmJiR0MFElw7KEBLT9ThBMnRFDiQlEBZnlQ==
-
 "@css-inline/css-inline-darwin-x64@0.20.0":
   version "0.20.0"
   resolved "https://registry.npmjs.org/@css-inline/css-inline-darwin-x64/-/css-inline-darwin-x64-0.20.0.tgz#d4f48fed62f1565e50432c9ed961571b1e03b975"
   integrity sha512-caFvVySabHZG4N1QUysbhWp2+VstMlYLysZYfAX0I6c9QfWcr+OZThoGOO2gC9lYy6QMCTBSD+9t+iceH9oBQw==
-
-"@css-inline/css-inline-darwin-x64@^0.20.2":
-  version "0.20.2"
-  resolved "https://registry.npmjs.org/@css-inline/css-inline-darwin-x64/-/css-inline-darwin-x64-0.20.2.tgz#0bd4984a5a2e4af080157dc7f414799474af6601"
-  integrity sha512-8YIJ8QNckqTy3O1ithbwYaWKhOLtkxX8omGDGJ1zS+KmDOjNhUSD2YBBaDqmBwpTnjwaod3H7sB/k9FD7EFRAg==
 
 "@css-inline/css-inline-linux-arm-gnueabihf@0.20.0":
   version "0.20.0"
