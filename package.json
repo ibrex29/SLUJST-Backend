@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@css-inline/css-inline-darwin-arm64": "^0.20.2",
     "@css-inline/css-inline-darwin-x64": "^0.20.2",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/axios": "^3.0.2",
