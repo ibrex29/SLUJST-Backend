@@ -60,7 +60,7 @@ export class ManuscriptController {
   ) {
     return this.manuscriptService.uploadManuscript(createManuscriptDto, userId);
   }
-
+  @Public()
   @Get()
   @ApiOperation({
     summary: 'Fetch paginated manuscripts with search and status filtering',
@@ -70,7 +70,8 @@ export class ManuscriptController {
     return this.manuscriptService.listAllManuscripts(query);
   }
 
-  @Get('manuscript/:manuscriptId')
+  @Public()
+  @Get(':manuscriptId')
   @ApiOperation({ summary: 'Get reviews by manuscript ID' })
   @ApiParam({ name: 'manuscriptId', description: 'Manuscript UUID' })
   getReviewsByManuscriptId(@Param('manuscriptId') manuscriptId: string) {
