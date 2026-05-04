@@ -105,12 +105,11 @@ export class ReviewController {
   }
 
   @Get(':reviewId')
-@ApiOperation({ summary: 'Get review by ID' })
-@ApiParam({ name: 'reviewId', description: 'Review UUID' })
-getReviewById(@Param('reviewId') reviewId: string) {
-  return this.reviewService.getReviewById(reviewId);
-}
-
+  @ApiOperation({ summary: 'Get review by ID' })
+  @ApiParam({ name: 'reviewId', description: 'Review UUID' })
+  getReviewById(@Param('reviewId') reviewId: string) {
+    return this.reviewService.getReviewById(reviewId);
+  }
 
   @Public()
   @Get('recommendations')
@@ -167,5 +166,12 @@ getReviewById(@Param('reviewId') reviewId: string) {
     @User('userId') userId: string,
   ) {
     return this.reviewService.allowAuthorToViewReview(reviewId, userId);
+  }
+
+  @Role(UserType.REVIEWER)
+  @Get('dashboard/analytics')
+  @ApiOperation({ summary: 'Get reviewer dashboard analytics' })
+  getReviewerDashboardAnalytics(@User('userId') userId: string) {
+    return this.reviewService.getReviewerDashboardAnalytics(userId);
   }
 }
