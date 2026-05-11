@@ -359,6 +359,170 @@ async getManuscriptsForSectionEditor(
   };
 }
 
+async getSectionEditorDashboardAnalytics(userId: string) {
+  const editor = await this.prisma.editor.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      sectionId: true,
+      Section: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!editor) {
+    throw new NotFoundException('Editor profile not found');
+  }
+
+  if (!editor.sectionId) {
+    throw new NotFoundException('Editor is not assigned to any section');
+  }
+
+  const sectionFilter = {
+    sectionId: editor.sectionId,
+  };
+
+  const [
+    totalSubmitted,
+    awaitingReview,
+    rejected,
+    accepted,
+    submittedOrPending,
+    totalReviewers,
+    recentSubmissions,
+  ] = await this.prisma.$transaction([
+    this.prisma.manuscript.count({
+      where: sectionFilter,
+    }),
+
+    this.prisma.manuscript.count({
+      where: {
+        ...sectionFilter,
+        status: Status.UNDER_REVIEW,
+      },
+    }),
+
+    this.prisma.manuscript.count({
+      where: {
+        ...sectionFilter,
+        status: Status.REJECTED,
+      },
+    }),
+
+    this.prisma.manuscript.count({
+      where: {
+        ...sectionFilter,
+        status: Status.ACCEPTED,
+      },
+    }),
+
+    this.prisma.manuscript.count({
+      where: {
+        ...sectionFilter,
+        status: Status.SUBMITTED,
+      },
+    }),
+
+    this.prisma.reviewer.count({
+      where: {
+        sectionId: editor.sectionId,
+      },
+    }),
+
+    this.prisma.manuscript.findMany({
+      where: sectionFilter,
+      take: 5,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        Author: {
+          include: {
+            User: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        Section: true,
+        Document: true,
+        Reviewers: {
+          include: {
+            reviewer: {
+              include: {
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            Reviewers: true,
+            Review: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const totalManuscripts = totalSubmitted || 1;
+
+  return {
+    section: editor.Section,
+
+    cards: {
+      totalSubmitted,
+      awaitingReview,
+      rejected,
+      approved: accepted,
+      totalReviewers,
+    },
+
+    pipeline: {
+      totalManuscripts: totalSubmitted,
+
+      submittedPending: {
+        count: submittedOrPending,
+        percentage: Number(
+          ((submittedOrPending / totalManuscripts) * 100).toFixed(1),
+        ),
+      },
+
+      underReview: {
+        count: awaitingReview,
+        percentage: Number(
+          ((awaitingReview / totalManuscripts) * 100).toFixed(1),
+        ),
+      },
+
+      acceptedApproved: {
+        count: accepted,
+        percentage: Number(((accepted / totalManuscripts) * 100).toFixed(1)),
+      },
+
+      rejected: {
+        count: rejected,
+        percentage: Number(((rejected / totalManuscripts) * 100).toFixed(1)),
+      },
+    },
+
+    recentSubmissions,
+  };
+}
+
 async getReviewersForSectionEditor(
   userId: string,
   fetchReviewerDto: FetchReviewerDto,
