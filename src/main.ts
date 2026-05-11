@@ -46,7 +46,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document, {
+  SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -58,7 +58,7 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   console.log(`✅ Server running at: http://localhost:${port}`);
-  console.log(`📘 Swagger docs available at: http://localhost:${port}/docs`);
+  console.log(`📘 Swagger docs available at: http://localhost:${port}/api/docs`);
   console.log(
     `📂 Static files served from: /assets -> ${join(__dirname, '..', 'upload', 'assets')}`,
   );
