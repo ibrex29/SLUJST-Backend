@@ -300,9 +300,6 @@ async getManuscriptsForSectionEditor(
         },
 
         Review: {
-          where: {
-            editorId: editor.id,
-          },
           include: {
             Reviewer: {
               include: {
