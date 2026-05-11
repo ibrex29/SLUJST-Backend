@@ -1,11 +1,8 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsString } from 'class-validator';
 
-export class ValidatePasswordResetDto {
-  @IsNotEmpty()
-  @IsEmail()
-  email: string;
-
-  @IsNotEmpty()
+export class ValidateResetTokenDto {
+  @ApiProperty({ example: 'reset-token-here' })
   @IsString()
-  resetToken: string;
+  token: string;
 }
