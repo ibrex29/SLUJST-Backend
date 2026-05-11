@@ -110,6 +110,13 @@ export class ManuscriptController {
   }
 
   @Role(UserType.SECTION_EDITOR)
+@Get('dashboard/section-editor/analytics')
+@ApiOperation({ summary: 'Get section editor dashboard analytics' })
+getSectionEditorDashboardAnalytics(@User('userId') userId: string) {
+  return this.manuscriptService.getSectionEditorDashboardAnalytics(userId);
+}
+
+  @Role(UserType.SECTION_EDITOR)
   @Get('reviewers-for-section-editor')
   @ApiOperation({
     summary:
