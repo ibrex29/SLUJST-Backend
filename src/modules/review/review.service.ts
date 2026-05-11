@@ -19,7 +19,9 @@ import { AcceptRejectManuscriptDto } from './dto/accept-reject-manuscript.dto';
 import { MailService } from '../mail/mail.service';
 import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
 import { FetchReviewDto } from './dto/fetch-review.dto';
+import { Manuscript } from '../manuscript/entities/manuscript.entity';
 import { Order } from 'src/common/dto/pagination-query.dto';
+import { FetchManuscriptDTO } from '../manuscript/dto/fetch-manuscript.dto';
 
 const AUTHOR_STRIPPED_FIELDS = [
   'commentsForEditors',
@@ -72,15 +74,58 @@ export class ReviewService {
     return reviewer.id;
   }
 
-  async getManuscriptsAssignedToReviewer(reviewerId: string) {
-    return this.prisma.manuscript.findMany({
-      where: {
-        Reviewers: {
-          some: { reviewerId },
+async getManuscriptsAssignedToReviewer(
+  reviewerId: string,
+  fetchManuscriptDto: FetchManuscriptDTO,
+): Promise<{ data: Manuscript[]; meta: PaginationMetadataDTO }> {
+  const filters: any = {
+    Reviewers: {
+      some: { reviewerId },
+    },
+  };
+
+  if (fetchManuscriptDto.status) {
+    filters.status = fetchManuscriptDto.status;
+  }
+
+  if (fetchManuscriptDto.search?.trim()) {
+    const search = fetchManuscriptDto.search.trim();
+
+    filters.OR = [
+      {
+        title: {
+          contains: search,
+          mode: 'insensitive',
         },
       },
+      {
+        abstract: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      },
+      {
+        keywords: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      },
+    ];
+  }
+
+  const [itemCount, manuscripts] = await this.prisma.$transaction([
+    this.prisma.manuscript.count({
+      where: filters,
+    }),
+
+    this.prisma.manuscript.findMany({
+      where: filters,
       include: {
-        Author: true,
+        Author: {
+          include: {
+            User: true,
+          },
+        },
         Section: true,
         Document: true,
         ActionLog: {
@@ -89,23 +134,55 @@ export class ReviewService {
               include: { User: true },
             },
           },
+          orderBy: {
+            performedAt: 'desc',
+          },
         },
         Review: {
           where: { reviewerId },
         },
         Reviewers: {
           include: {
-            reviewer: true,
+            reviewer: {
+              include: {
+                User: true,
+              },
+            },
+          },
+        },
+        SuggestedReviewers: true,
+        _count: {
+          select: {
+            Reviewers: true,
+            Review: true,
           },
         },
       },
-    });
-  }
+      orderBy: {
+        createdAt: fetchManuscriptDto.sortOrder,
+      },
+      skip: fetchManuscriptDto.skip,
+      take: fetchManuscriptDto.limit,
+    }),
+  ]);
 
-  async getManuscriptsAssignedForLoggedInUser(userId: string) {
-    const reviewerId = await this.getReviewerIdForLoggedUser(userId);
-    return this.getManuscriptsAssignedToReviewer(reviewerId);
-  }
+  return {
+    data: manuscripts,
+    meta: new PaginationMetadataDTO({
+      pageOptionsDTO: fetchManuscriptDto,
+      itemCount,
+    }),
+  };
+}
+
+async getManuscriptsAssignedForLoggedInUser(
+  userId: string,
+  fetchManuscriptDto: FetchManuscriptDTO,
+): Promise<{ data: Manuscript[]; meta: PaginationMetadataDTO }> {
+  const reviewerId = await this.getReviewerIdForLoggedUser(userId);
+
+  return this.getManuscriptsAssignedToReviewer(reviewerId, fetchManuscriptDto);
+}
 
   async createReview(userId: string, dto: CreateReviewDto) {
     const reviewerId = await this.getReviewerIdForLoggedUser(userId);

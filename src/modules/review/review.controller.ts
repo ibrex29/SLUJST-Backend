@@ -27,6 +27,7 @@ import { ReviewService } from './review.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { AcceptRejectManuscriptDto } from './dto/accept-reject-manuscript.dto';
 import { FetchReviewDto } from './dto/fetch-review.dto';
+import { FetchManuscriptDTO } from '../manuscript/dto/fetch-manuscript.dto';
 
 @ApiBearerAuth()
 @ApiTags('review')
@@ -38,8 +39,8 @@ export class ReviewController {
   @Role(UserType.REVIEWER)
   @Get('assigned-manuscript')
   @ApiOperation({ summary: 'Get assigned manuscripts for logged-in reviewer' })
-  getAssignedManuscripts(@User('userId') userId: string) {
-    return this.reviewService.getManuscriptsAssignedForLoggedInUser(userId);
+  getAssignedManuscripts(@User('userId') userId: string,@Query() query: FetchManuscriptDTO,) {
+    return this.reviewService.getManuscriptsAssignedForLoggedInUser(userId, query);
   }
 
   @Role(UserType.REVIEWER)
