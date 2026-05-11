@@ -23,6 +23,7 @@ import { Order } from 'src/common/dto/pagination-query.dto';
 import * as bcryptjs from 'bcryptjs';
 import { AddAndAssignSuggestedReviewerDto } from './dto/add-and-assign-suggested-reviewer.dto';
 import { UnassignReviewersDto } from './dto/unassign-reviewers.dto';
+import { FetchReviewerDto } from './dto/fetch-reviewer.dto';
 
 @Injectable()
 export class ManuscriptService {
@@ -220,25 +221,102 @@ export class ManuscriptService {
     });
   }
 
-  async getManuscriptsForSectionEditor(
-    userId: string,
-  ): Promise<ManuscriptDto[]> {
-    const sectionEditor = await this.prisma.editor.findUnique({
-      where: { userId },
-      select: { sectionId: true },
-    });
+async getManuscriptsForSectionEditor(
+  userId: string,
+  fetchManuscriptDto: FetchManuscriptDTO,
+): Promise<{ data: Manuscript[]; meta: PaginationMetadataDTO }> {
+  const editor = await this.prisma.editor.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      userId: true,
+      role: true,
+      sectionId: true,
+    },
+  });
 
-    if (!sectionEditor || !sectionEditor.sectionId) {
-      throw new NotFoundException(
-        'Section editor not found or not assigned to any section',
-      );
-    }
+  if (!editor) {
+    throw new NotFoundException('Editor profile not found for this user');
+  }
 
-    return await this.prisma.manuscript.findMany({
-      where: { sectionId: sectionEditor.sectionId },
+  if (!editor.sectionId) {
+    throw new NotFoundException('Editor is not assigned to any section');
+  }
+
+  const filters: any = {
+    sectionId: editor.sectionId,
+  };
+
+  if (fetchManuscriptDto.status) {
+    filters.status = fetchManuscriptDto.status;
+  }
+
+  if (fetchManuscriptDto.search) {
+    filters.OR = [
+      {
+        title: {
+          contains: fetchManuscriptDto.search,
+          mode: 'insensitive',
+        },
+      },
+      {
+        abstract: {
+          contains: fetchManuscriptDto.search,
+          mode: 'insensitive',
+        },
+      },
+    ];
+  }
+
+  const [itemCount, manuscripts] = await this.prisma.$transaction([
+    this.prisma.manuscript.count({
+      where: filters,
+    }),
+
+    this.prisma.manuscript.findMany({
+      where: filters,
       include: {
-        Document: true,
-        Section: true,
+        Author: {
+          include: {
+            User: true,
+          },
+        },
+
+        Reviewers: {
+          include: {
+            reviewer: {
+              include: {
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    phoneNumber: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+
+        Review: {
+          where: {
+            editorId: editor.id,
+          },
+          include: {
+            Reviewer: {
+              include: {
+                User: true,
+              },
+            },
+            Editor: {
+              include: {
+                User: true,
+              },
+            },
+          },
+        },
+
         ActionLog: {
           include: {
             createdBy: {
@@ -247,43 +325,189 @@ export class ManuscriptService {
               },
             },
           },
+          orderBy: {
+            performedAt: 'desc',
+          },
         },
-        Review: true,
+
+        Document: true,
+        Section: true,
+        SuggestedReviewers: true,
+
+        _count: {
+          select: {
+            Reviewers: true,
+          },
+        },
       },
-    });
+
+      orderBy: {
+        createdAt: fetchManuscriptDto.sortOrder,
+      },
+
+      skip: fetchManuscriptDto.skip,
+      take: fetchManuscriptDto.limit,
+    }),
+  ]);
+
+  return {
+    data: manuscripts,
+    meta: new PaginationMetadataDTO({
+      pageOptionsDTO: fetchManuscriptDto,
+      itemCount,
+    }),
+  };
+}
+
+async getReviewersForSectionEditor(
+  userId: string,
+  fetchReviewerDto: FetchReviewerDto,
+): Promise<{ data: any[]; meta: PaginationMetadataDTO }> {
+  const editor = await this.prisma.editor.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      sectionId: true,
+      Section: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!editor) {
+    throw new NotFoundException('Editor profile not found');
   }
 
-  async getReviewersForSectionEditor(userId: string): Promise<ReviewerDto[]> {
-    const sectionEditor = await this.prisma.editor.findUnique({
-      where: { userId },
-      select: { sectionId: true },
-    });
+  if (!editor.sectionId) {
+    throw new NotFoundException('Editor is not assigned to any section');
+  }
 
-    if (!sectionEditor || !sectionEditor.sectionId) {
-      throw new NotFoundException(
-        'Section editor not found or not assigned to any section',
-      );
-    }
+  const filters: any = {
+    sectionId: editor.sectionId,
+  };
 
-    const reviewers = await this.prisma.reviewer.findMany({
-      where: { sectionId: sectionEditor.sectionId },
-      include: { User: true },
-    });
+  if (fetchReviewerDto.search?.trim()) {
+    const search = fetchReviewerDto.search.trim();
 
-    return reviewers.map((reviewer) => ({
+    filters.OR = [
+      { expertiseArea: { contains: search, mode: 'insensitive' } },
+      { User: { email: { contains: search, mode: 'insensitive' } } },
+      { User: { firstName: { contains: search, mode: 'insensitive' } } },
+      { User: { lastName: { contains: search, mode: 'insensitive' } } },
+    ];
+  }
+
+  const [itemCount, reviewers] = await this.prisma.$transaction([
+    this.prisma.reviewer.count({ where: filters }),
+
+    this.prisma.reviewer.findMany({
+      where: filters,
+      include: {
+        User: {
+          select: {
+            id: true,
+            title: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phoneNumber: true,
+            isActive: true,
+            createdAt: true,
+          },
+        },
+        Section: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        ManuscriptReviewer: {
+          include: {
+            manuscript: {
+              select: {
+                id: true,
+                title: true,
+                abstract: true,
+                status: true,
+                createdAt: true,
+                reviewDueDate: true,
+              },
+            },
+          },
+          orderBy: {
+            assignedAt: 'desc',
+          },
+        },
+        Review: {
+          select: {
+            id: true,
+            manuscriptId: true,
+            status: true,
+            recommendation: true,
+            comments: true,
+            commentsForEditors: true,
+            reviewDate: true,
+            createdAt: true,
+            updatedAt: true,
+            isClosed: true,
+            canAuthorView: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        _count: {
+          select: {
+            ManuscriptReviewer: true,
+            Review: true,
+          },
+        },
+      },
+      orderBy: {
+        User: {
+          firstName: fetchReviewerDto.sortOrder ?? 'asc',
+        },
+      },
+      skip: fetchReviewerDto.skip,
+      take: fetchReviewerDto.limit,
+    }),
+  ]);
+
+  return {
+    data: reviewers.map((reviewer) => ({
       id: reviewer.id,
       userId: reviewer.userId,
       expertiseArea: reviewer.expertiseArea,
+      higestQualification: reviewer.higestQualification,
       sectionId: reviewer.sectionId,
-      user: {
-        id: reviewer.User.id,
-        email: reviewer.User.email,
-        firstName: reviewer.User.firstName,
-        lastName: reviewer.User.lastName,
-      },
-    }));
-  }
 
+      user: reviewer.User,
+
+      section: reviewer.Section,
+
+      assignedManuscripts: reviewer.ManuscriptReviewer.map((item) => ({
+        assignmentId: item.id,
+        assignedAt: item.assignedAt,
+        dueDate: item.dueDate,
+        manuscript: item.manuscript,
+      })),
+
+      reviews: reviewer.Review,
+
+      stats: {
+        totalAssignedManuscripts: reviewer._count.ManuscriptReviewer,
+        totalReviews: reviewer._count.Review,
+      },
+    })),
+    meta: new PaginationMetadataDTO({
+      pageOptionsDTO: fetchReviewerDto,
+      itemCount,
+    }),
+  };
+}
   async listSubmittedManuscripts(filters: FetchSubmittedManuscriptsDto) {
     try {
       const whereCondition: Prisma.ManuscriptWhereInput = {
@@ -781,7 +1005,7 @@ export class ManuscriptService {
       this.prisma.publication.count({
         where: {
           isActive: true,
-        //   // isPublished: true,
+          //   // isPublished: true,
         },
       }),
 

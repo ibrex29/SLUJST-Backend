@@ -8,7 +8,6 @@ import {
   Get,
   Param,
   Query,
-  Delete,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import {
@@ -28,7 +27,6 @@ import { Public, Role } from 'src/common/constants/routes.constant';
 import { Manuscript, Status } from '@prisma/client';
 import { AssignReviewerDto } from './dto/assign-reviewer.dto';
 import { AssignManuscriptToSectionDto } from './dto/assign-manuscript-to-section.dto';
-import { ManuscriptDto } from './dto/manuscript.dto';
 import { ReviewerDto } from '../user/dtos/grouped-reviewers.dto';
 import { User } from 'src/common/decorators/param-decorator/User.decorator';
 import {
@@ -38,6 +36,8 @@ import {
 import { RejectManuscriptDto } from './dto/update-manuscript.dto';
 import { AddAndAssignSuggestedReviewerDto } from './dto/add-and-assign-suggested-reviewer.dto';
 import { UnassignReviewersDto } from './dto/unassign-reviewers.dto';
+import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
+import { FetchReviewerDto } from './dto/fetch-reviewer.dto';
 
 @ApiTags('manuscripts')
 @ApiBearerAuth()
@@ -68,14 +68,6 @@ export class ManuscriptController {
   @ApiResponse({ status: 200, description: 'Manuscripts fetched successfully' })
   async listPaginatedManuscripts(@Query() query: FetchManuscriptDTO) {
     return this.manuscriptService.listAllManuscripts(query);
-  }
-
-  @Public()
-  @Get(':manuscriptId')
-  @ApiOperation({ summary: 'Get reviews by manuscript ID' })
-  @ApiParam({ name: 'manuscriptId', description: 'Manuscript UUID' })
-  getReviewsByManuscriptId(@Param('manuscriptId') manuscriptId: string) {
-    return this.manuscriptService.getReviewsByManuscriptId(manuscriptId);
   }
 
   @Role(UserType.EDITOR_IN_CHIEF, UserType.MANAGING_EDITOR)
@@ -112,8 +104,9 @@ export class ManuscriptController {
   @Get('section-editor')
   async getManuscriptsForSectionEditor(
     @User('userId') userId: string,
-  ): Promise<ManuscriptDto[]> {
-    return this.manuscriptService.getManuscriptsForSectionEditor(userId);
+    @Query() query: FetchManuscriptDTO,
+  ): Promise<{ data: Manuscript[]; meta: PaginationMetadataDTO }> {
+    return this.manuscriptService.getManuscriptsForSectionEditor(userId, query);
   }
 
   @Role(UserType.SECTION_EDITOR)
@@ -126,8 +119,9 @@ export class ManuscriptController {
   @ApiResponse({ status: 404, description: 'Not found' })
   async getReviewersForSectionEditor(
     @User('userId') userId: string,
-  ): Promise<ReviewerDto[]> {
-    return this.manuscriptService.getReviewersForSectionEditor(userId);
+    @Query() query: FetchReviewerDto,
+  ): Promise<{ data: ReviewerDto[]; meta: PaginationMetadataDTO }> {
+    return this.manuscriptService.getReviewersForSectionEditor(userId, query);
   }
   // @Public()
   // @Role(UserType.SECTION_EDITOR)
@@ -232,5 +226,13 @@ export class ManuscriptController {
   @ApiOperation({ summary: 'Get dashboard analytics' })
   getDashboardAnalytics() {
     return this.manuscriptService.getDashboardAnalytics();
+  }
+
+  @Public()
+  @Get(':manuscriptId')
+  @ApiOperation({ summary: 'Get reviews by manuscript ID' })
+  @ApiParam({ name: 'manuscriptId', description: 'Manuscript UUID' })
+  getReviewsByManuscriptId(@Param('manuscriptId') manuscriptId: string) {
+    return this.manuscriptService.getReviewsByManuscriptId(manuscriptId);
   }
 }
