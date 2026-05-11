@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Headers,
+  Patch,
   Post,
   Request,
   UseGuards,
@@ -17,6 +18,9 @@ import { Public } from 'src/common/constants/routes.constant';
 import { User } from 'src/common/decorators/param-decorator/User.decorator';
 import { ChangePasswordDTO } from './dtos/change-password.dto';
 import { PasswordService } from './password.service';
+import { RequestPasswordResetDto } from './dtos/request-reset-password.dto';
+import { ResetPasswordDto } from './dtos/reset-password.dto';
+import { ValidateResetTokenDto } from './dtos/validate-reset-password.dto';
 
 @ApiTags('Authentication')
 @ApiBearerAuth()
@@ -64,6 +68,30 @@ export class AuthController {
     // Respond with a success message
     return { message: 'Logged out successfully' };
   }
+
+  @Public()
+@Version('1')
+@Post('password/request-reset')
+@ApiOperation({ summary: 'Request password reset' })
+async requestPasswordReset(@Body() dto: RequestPasswordResetDto) {
+  return this.passwordService.requestPasswordReset(dto.email);
+}
+
+@Public()
+@Version('1')
+@Post('password/validate-token')
+@ApiOperation({ summary: 'Validate password reset token' })
+async validatePasswordResetToken(@Body() dto: ValidateResetTokenDto) {
+  return this.passwordService.validatePasswordResetToken(dto.token);
+}
+
+@Public()
+@Version('1')
+@Patch('password/reset')
+@ApiOperation({ summary: 'Reset password' })
+async resetPassword(@Body() dto: ResetPasswordDto) {
+  return this.passwordService.resetPassword(dto.token, dto.newPassword);
+}
 
   @Version('1')
   @Post('password/change')

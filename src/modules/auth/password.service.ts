@@ -7,6 +7,7 @@ import { CryptoService } from 'src/common/crypto/crypto.service';
 import { PrismaService } from 'prisma/prisma.service';
 import { SITE_URL } from 'src/common/constants';
 import { UserNotFoundException } from '../user/exceptions/UserNotFound.exception';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class PasswordService {
@@ -18,7 +19,7 @@ export class PasswordService {
     private jwtTokenService: JwtTokenService,
     private cryptoService: CryptoService,
     private prisma: PrismaService,
-    // private mailService: MailService,
+    private mailService: MailService,
     // private redisService: RedisService,
   ) {
     this.siteUrl = this.configService.get(SITE_URL);
@@ -36,7 +37,53 @@ export class PasswordService {
     });
   }
 
-  
+  async requestPasswordReset(email: string) {
+    const user = await this.userService.findUserByEmail(email);
 
+    if (!user) {
+      throw new UserNotFoundException();
+    }
 
+    const payload = {
+      sub: user.id,
+      email: user.email,
+    };
+
+    const token =
+      await this.jwtTokenService.generateResetPasswordToken(payload);
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
+    await this.mailService.sendPasswordResetEmail(
+      user.email,
+      user.firstName + " " + user.lastName || user.email,
+      resetUrl,
+    );
+
+    return {
+      status: 'success',
+      message: 'Password reset email sent successfully',
+    };
+  }
+
+  async validatePasswordResetToken(token: string) {
+    const payload = await this.jwtTokenService.verifyResetPasswordToken(token);
+
+    return {
+      status: 'success',
+      message: 'Token is valid',
+      data: payload,
+    };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const payload = await this.jwtTokenService.verifyResetPasswordToken(token);
+
+    await this.changePassword(payload.sub, newPassword);
+
+    return {
+      status: 'success',
+      message: 'Password reset successfully',
+    };
+  }
 }

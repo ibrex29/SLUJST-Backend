@@ -189,4 +189,21 @@ export class MailService {
 
     await this.sendMail(options);
   }
+
+  async sendPasswordResetEmail(
+  recipientEmail: string,
+  fullName: string,
+  resetUrl: string,
+) {
+  await this.sendMail({
+    to: recipientEmail,
+    subject: 'Reset Your SLUJST Password',
+    template: 'password-reset',
+    context: {
+      fullName,
+      resetUrl,
+      year: new Date().getFullYear(),
+    },
+  });
+}
 }
