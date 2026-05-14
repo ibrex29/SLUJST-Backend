@@ -28,6 +28,7 @@ import { CreateReviewDto } from './dto/create-review.dto';
 import { AcceptRejectManuscriptDto } from './dto/accept-reject-manuscript.dto';
 import { FetchReviewDto } from './dto/fetch-review.dto';
 import { FetchManuscriptDTO } from '../manuscript/dto/fetch-manuscript.dto';
+import { CompleteReviewDto } from './dto/complete-review.dto';
 
 @ApiBearerAuth()
 @ApiTags('review')
@@ -175,4 +176,18 @@ export class ReviewController {
   getReviewerDashboardAnalytics(@User('userId') userId: string) {
     return this.reviewService.getReviewerDashboardAnalytics(userId);
   }
+
+  @Role(UserType.REVIEWER)
+@Post('complete/:manuscriptId')
+async completeReview(
+  @User('userId') userId: string,
+  @Param('manuscriptId') manuscriptId: string,
+  @Body() dto: CompleteReviewDto,
+) {
+  return this.reviewService.completeReview(
+    userId,
+    manuscriptId,
+    dto,
+  );
+}
 }
