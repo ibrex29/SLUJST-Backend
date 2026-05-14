@@ -3,7 +3,6 @@ import {
   BadRequestException,
   InternalServerErrorException,
   NotFoundException,
-  ConflictException,
   HttpStatus,
 } from '@nestjs/common';
 import { CreateManuscriptDto } from './dto/create-manuscript.dto';
@@ -11,8 +10,6 @@ import { Manuscript, Prisma, Reviewer, Status, User } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { AssignReviewerDto } from './dto/assign-reviewer.dto';
 import { AssignManuscriptToSectionDto } from './dto/assign-manuscript-to-section.dto';
-import { ManuscriptDto } from './dto/manuscript.dto';
-import { ReviewerDto } from '../user/dtos/grouped-reviewers.dto';
 import { PaginationMetadataDTO } from 'src/common/dto/page-meta.dto';
 import {
   FetchManuscriptDTO,
@@ -161,13 +158,7 @@ export class ManuscriptService {
               },
             },
 
-            ActionLog: {
-              include: {
-                createdBy: {
-                  include: { User: true },
-                },
-              },
-            },
+            ActionLog:true,
             Review: true,
             Document: true,
             Section: true,
@@ -314,19 +305,7 @@ async getManuscriptsForSectionEditor(
           },
         },
 
-        ActionLog: {
-          include: {
-            createdBy: {
-              include: {
-                User: true,
-              },
-            },
-          },
-          orderBy: {
-            performedAt: 'desc',
-          },
-        },
-
+        ActionLog: true,
         Document: true,
         Section: true,
         SuggestedReviewers: true,
@@ -702,15 +681,7 @@ async getReviewersForSectionEditor(
               reviewer: true,
             },
           },
-          ActionLog: {
-            include: {
-              createdBy: {
-                include: {
-                  User: true,
-                },
-              },
-            },
-          },
+          ActionLog: true,
           Review: true,
           Document: true,
           Section: true,
@@ -746,15 +717,7 @@ async getReviewersForSectionEditor(
               reviewer: true,
             },
           },
-          ActionLog: {
-            include: {
-              createdBy: {
-                include: {
-                  User: true,
-                },
-              },
-            },
-          },
+          ActionLog: true,
           Review: {
             include: {
               Reviewer: {
