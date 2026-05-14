@@ -777,7 +777,11 @@ export class ReviewService {
     };
   }
 
-  async completeReview(userId: string, manuscriptId: string, dto: CompleteReviewDto) {
+async completeReview(
+  userId: string,
+  manuscriptId: string,
+  dto: CompleteReviewDto,
+) {
   const reviewerId = await this.getReviewerIdForLoggedUser(userId);
 
   if (!dto.aiDeclarationConfirmed) {
@@ -805,54 +809,53 @@ export class ReviewService {
     );
   }
 
-  const existingReview = await this.prisma.review.findFirst({
+  const existingCompletedReview = await this.prisma.review.findFirst({
     where: {
-      manuscriptId: manuscriptId,
+      manuscriptId,
       reviewerId,
+      isClosed: true,
     },
   });
 
-  if (existingReview?.isClosed) {
+  if (existingCompletedReview) {
     throw new BadRequestException('This review is already completed.');
   }
 
-  if (existingReview) {
-    return this.prisma.review.update({
-      where: { id: existingReview.id },
+  const [review, actionLog] = await this.prisma.$transaction([
+    this.prisma.review.create({
       data: {
-        comments: dto.comments ?? existingReview.comments,
-        commentsForEditors:
-          dto.commentsForEditors ?? existingReview.commentsForEditors,
+        manuscriptId,
+        reviewerId,
+        authorId: manuscript.authorId,
+        comments: dto.comments ?? null,
+        commentsForEditors: dto.commentsForEditors ?? null,
         checklist: dto.checklist
           ? (dto.checklist as Prisma.InputJsonValue)
-          : existingReview.checklist,
+          : undefined,
         recommendation: dto.recommendation,
         status: ReviewStatus.PENDING_APPROVAL,
         aiDeclarationConfirmed: dto.aiDeclarationConfirmed,
         notifyOnFinalStatus: dto.notifyOnFinalStatus ?? false,
+        canAuthorView: false,
         isClosed: true,
+        createdByUserId: reviewerId,
       },
-    });
-  }
+    }),
 
-  return this.prisma.review.create({
-    data: {
-      manuscriptId: manuscriptId,
-      reviewerId,
-      authorId: manuscript.authorId,
-      comments: dto.comments ?? null,
-      commentsForEditors: dto.commentsForEditors ?? null,
-      checklist: dto.checklist
-        ? (dto.checklist as Prisma.InputJsonValue)
-        : undefined,
-      recommendation: dto.recommendation,
-      status: ReviewStatus.PENDING_APPROVAL,
-      aiDeclarationConfirmed: dto.aiDeclarationConfirmed,
-      notifyOnFinalStatus: dto.notifyOnFinalStatus ?? false,
-      canAuthorView: false,
-      isClosed: true,
-      createdByUserId: reviewerId,
-    },
-  });
+    this.prisma.actionLog.create({
+      data: {
+        manuscriptId,
+        recommendation: dto.recommendation,
+        remark: dto.commentsForEditors ?? dto.comments ?? null,
+        createdByUserId: reviewerId,
+      },
+    }),
+  ]);
+
+  return {
+    message: 'Review completed successfully.',
+    review,
+    actionLog,
+  };
 }
 }
