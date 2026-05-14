@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import {
+  ActionType,
   Prisma,
   Recommendation,
   Reply,
@@ -652,6 +653,7 @@ export class ReviewService {
           manuscriptId,
           recommendation,
           remark,
+          action: ActionType.MANUSCRIPT_ASSIGNED,
           createdByUserId: reviewerId,
         },
       }),
@@ -780,7 +782,7 @@ export class ReviewService {
 async completeReview(
   userId: string,
   manuscriptId: string,
-  dto: CompleteReviewDto,
+  dto: CompleteReviewDto
 ) {
   const reviewerId = await this.getReviewerIdForLoggedUser(userId);
 
@@ -809,44 +811,40 @@ async completeReview(
     );
   }
 
-  const existingCompletedReview = await this.prisma.review.findFirst({
+  const existingReview = await this.prisma.review.findFirst({
     where: {
       manuscriptId,
       reviewerId,
-      isClosed: true,
     },
   });
 
-  if (existingCompletedReview) {
+  if (!existingReview) {
+    throw new NotFoundException(
+      'No review found for this manuscript. Please create a review first.',
+    );
+  }
+
+  if (existingReview.isClosed) {
     throw new BadRequestException('This review is already completed.');
   }
 
   const [review, actionLog] = await this.prisma.$transaction([
-    this.prisma.review.create({
+    this.prisma.review.update({
+      where: { id: existingReview.id },
       data: {
-        manuscriptId,
-        reviewerId,
-        authorId: manuscript.authorId,
-        comments: dto.comments ?? null,
-        commentsForEditors: dto.commentsForEditors ?? null,
-        checklist: dto.checklist
-          ? (dto.checklist as Prisma.InputJsonValue)
-          : undefined,
-        recommendation: dto.recommendation,
-        status: ReviewStatus.PENDING_APPROVAL,
-        aiDeclarationConfirmed: dto.aiDeclarationConfirmed,
-        notifyOnFinalStatus: dto.notifyOnFinalStatus ?? false,
-        canAuthorView: false,
         isClosed: true,
-        createdByUserId: reviewerId,
       },
     }),
 
     this.prisma.actionLog.create({
       data: {
         manuscriptId,
+        action: ActionType.REVIEW_COMPLETED,
         recommendation: dto.recommendation,
-        remark: dto.commentsForEditors ?? dto.comments ?? null,
+        remark: 'Reviewer completed review',
+        comments: dto.comments ?? existingReview.comments,
+        commentsForEditors:
+          dto.commentsForEditors ?? existingReview.commentsForEditors,
         createdByUserId: reviewerId,
       },
     }),
