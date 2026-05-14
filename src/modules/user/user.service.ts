@@ -20,7 +20,7 @@ import { MailService } from '../mail/mail.service';
 export class UserService {
   constructor(
     private prisma: PrismaService,
-    private mailService: MailService,  
+    private mailService: MailService,
   ) {}
 
   async findUserByEmail(email: string) {
