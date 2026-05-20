@@ -55,7 +55,7 @@ async function bootstrap() {
   app.use('/assets', express.static(join(process.cwd(), 'upload', 'assets')));
 
   const port = process.env.PORT || 5000;
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port, '127.0.0.1');
 
   console.log(`✅ Server running at: http://localhost:${port}`);
   console.log(`📘 Swagger docs available at: http://localhost:${port}/api/docs`);
